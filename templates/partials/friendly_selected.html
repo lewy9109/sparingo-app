@@ -1,0 +1,39 @@
+{{ define "friendly_selected.html" }}
+{{ if .Selected }}
+  <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-200/80 bg-slate-50 px-4 py-3">
+    <div>
+      <div class="text-xs uppercase tracking-wide text-slate-400">Gracz B</div>
+      <div class="text-base font-semibold text-slate-900">{{ .Selected.FullName }}</div>
+    </div>
+    <button
+      class="btn btn-xs btn-outline"
+      hx-get="/friendlies/select?clear=1"
+      hx-target="#friendly-selected"
+      hx-swap="innerHTML"
+    >
+      Zmien
+    </button>
+    <input type="hidden" name="opponent_id" value="{{ .Selected.ID }}">
+  </div>
+  {{ if or .SearchInput.SwapOOB .Search.SwapOOB }}
+    <div id="friendly-opponent-name" hx-swap-oob="true" class="mt-1 text-base font-semibold text-slate-900">{{ .Selected.FullName }}</div>
+    <div id="friendly-opponent-hint" hx-swap-oob="true" class="text-xs text-slate-500">Wybrany przeciwnik</div>
+  {{ end }}
+  <div id="friendly-search-panel" hx-swap-oob="true" class="hidden"></div>
+{{ else }}
+  <div class="rounded-xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
+    Nie wybrano przeciwnika.
+  </div>
+  {{ if or .SearchInput.SwapOOB .Search.SwapOOB }}
+    <div id="friendly-opponent-name" hx-swap-oob="true" class="mt-1 text-base font-semibold text-slate-900">Wybierz przeciwnika</div>
+    <div id="friendly-opponent-hint" hx-swap-oob="true" class="text-xs text-slate-500">Przez wyszukiwarke ponizej</div>
+  {{ end }}
+  <div id="friendly-search-panel" hx-swap-oob="true"></div>
+{{ end }}
+{{ if .SearchInput.SwapOOB }}
+  {{ template "friendly_search_input.html" .SearchInput }}
+{{ end }}
+{{ if .Search.SwapOOB }}
+  {{ template "friendly_search_results.html" .Search }}
+{{ end }}
+{{ end }}

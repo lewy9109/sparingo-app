@@ -1,0 +1,36 @@
+{{ define "recent_activity_row.html" }}
+<div id="match-{{ .MatchID }}" class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200/80 bg-slate-50 px-4 py-3">
+  <div>
+    <div class="flex flex-wrap items-center gap-2 text-xs uppercase tracking-wide text-slate-400">
+      <span class="badge badge-outline">
+        {{ if eq .Kind "league" }}Liga: {{ .LeagueName }}{{ else }}Mecz towarzyski{{ end }}
+      </span>
+      <span class="badge badge-outline">{{ .StatusText }}</span>
+    </div>
+    <div class="text-sm text-slate-500">{{ .PlayerA.FullName }} vs {{ .PlayerB.FullName }}</div>
+    <div class="text-base font-medium">{{ .ScoreLine }}</div>
+    <div class="text-xs text-slate-400">Rozegrano: {{ .PlayedAtLabel }}</div>
+  </div>
+  <div class="flex items-center gap-2">
+    {{ if .CanConfirm }}
+      {{ if eq .Kind "league" }}
+        <form method="post" action="/matches/{{ .MatchID }}/confirm">
+          <button class="btn btn-xs btn-success">Potwierdz</button>
+        </form>
+        <form method="post" action="/matches/{{ .MatchID }}/reject">
+          <button class="btn btn-xs btn-outline btn-error">Odrzuc</button>
+        </form>
+      {{ else }}
+        <form method="post" action="/friendlies/{{ .MatchID }}/confirm">
+          <button class="btn btn-xs btn-success">Potwierdz</button>
+        </form>
+        <form method="post" action="/friendlies/{{ .MatchID }}/reject">
+          <button class="btn btn-xs btn-outline btn-error">Odrzuc</button>
+        </form>
+      {{ end }}
+    {{ else }}
+      <span class="badge badge-outline">{{ .StatusText }}</span>
+    {{ end }}
+  </div>
+</div>
+{{ end }}

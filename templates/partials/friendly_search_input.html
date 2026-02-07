@@ -1,0 +1,17 @@
+{{ define "friendly_search_input.html" }}
+<div id="friendly-search-input" {{ if .SwapOOB }}hx-swap-oob="true"{{ end }}>
+  <input
+    id="friendly-search-query"
+    type="text"
+    name="q"
+    autocomplete="off"
+    class="input input-bordered w-full"
+    placeholder="Np. Jan Kowalski lub jan@example.com"
+    hx-get="/friendlies/search"
+    hx-trigger="keyup changed delay:300ms"
+    hx-target="#friendly-search-results"
+    hx-swap="outerHTML"
+    value="{{ .Query }}"
+  >
+</div>
+{{ end }}

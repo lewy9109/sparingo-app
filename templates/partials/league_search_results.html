@@ -1,0 +1,37 @@
+{{ define "league_search_results.html" }}
+<div id="league-search-results" class="mt-6 grid gap-4">
+  {{ if .EmptyQuery }}
+    <div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500">
+      Wpisz fraze, aby wyszukac ligi.
+    </div>
+  {{ else if .Results }}
+    {{ range .Results }}
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div class="text-lg font-medium">{{ .Name }}</div>
+            <div class="text-sm text-slate-500">{{ .Location }}</div>
+          </div>
+          <a href="/leagues/{{ .ID }}" class="btn btn-outline btn-sm">Podejrzyj wyniki</a>
+        </div>
+        {{ if .Description }}
+          <p class="mt-2 text-sm text-slate-600">{{ .Description }}</p>
+        {{ end }}
+        <div class="mt-3 flex flex-wrap items-center gap-2 text-xs uppercase tracking-wide text-slate-400">
+          <span class="badge badge-outline">
+            {{ if eq .Status "active" }}Aktywna{{ else if eq .Status "upcoming" }}Nadchodzaca{{ else }}Zakonczona{{ end }}
+          </span>
+          <span class="badge badge-outline">Start: {{ .StartDate.Format "02 Jan 2006" }}</span>
+          {{ if .EndDate }}
+            <span class="badge badge-outline">Koniec: {{ .EndDate.Format "02 Jan 2006" }}</span>
+          {{ end }}
+        </div>
+      </div>
+    {{ end }}
+  {{ else }}
+    <div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500">
+      Brak wynikow wyszukiwania.
+    </div>
+  {{ end }}
+</div>
+{{ end }}
