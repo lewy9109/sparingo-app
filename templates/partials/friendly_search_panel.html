@@ -1,0 +1,7 @@
+{{ define "friendly_search_panel.html" }}
+<div id="friendly-search-panel" {{ if or .SearchInput.SwapOOB .Search.SwapOOB }}hx-swap-oob="true"{{ end }}>
+  <label class="label"><span class="label-text">Szukaj przeciwnika</span></label>
+  {{ template "friendly_search_input.html" .SearchInput }}
+  {{ template "friendly_search_results.html" .Search }}
+</div>
+{{ end }}

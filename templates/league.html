@@ -1,0 +1,224 @@
+{{ define "content" }}
+<section class="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+  <div>
+    <h1 class="text-2xl font-semibold">{{ .League.Name }}</h1>
+    <p class="mt-1 text-sm text-slate-500">{{ .League.Description }}</p>
+    <p class="mt-2 text-sm text-slate-600">Klub: <span class="font-medium">{{ .League.Location }}</span></p>
+    <div class="mt-3 flex flex-wrap items-center gap-2 text-xs uppercase tracking-wide text-slate-400">
+      <span class="badge badge-outline">
+        {{ if eq .League.Status "active" }}Aktywna{{ else if eq .League.Status "upcoming" }}Nadchodzaca{{ else }}Zakonczona{{ end }}
+      </span>
+      <span class="badge badge-outline">Start: {{ .League.StartDate.Format "02 Jan 2006" }}</span>
+      {{ if .League.EndDate }}
+        <span class="badge badge-outline">Koniec: {{ .League.EndDate.Format "02 Jan 2006" }}</span>
+      {{ end }}
+    </div>
+    {{ if and .IsAdmin (ne .League.Status "finished") }}
+      <form method="post" action="/leagues/{{ .League.ID }}/end" class="mt-3">
+        <button class="btn btn-xs btn-outline btn-error">Zakoncz lige</button>
+      </form>
+    {{ end }}
+  </div>
+</section>
+
+<section class="mb-8 grid gap-6 lg:grid-cols-[1fr,1.2fr]">
+  {{ template "league_players_panel.html" .PlayersPanel }}
+  {{ if .IsAdmin }}
+    <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 class="text-xl font-semibold">Dodaj graczy</h2>
+      <label class="mt-4 block text-sm text-slate-500">Szukaj po imieniu lub emailu</label>
+      <input
+        type="text"
+        name="q"
+        autocomplete="off"
+        class="input input-bordered mt-2 w-full"
+        placeholder="Np. Jan Kowalski lub jan@example.com"
+        hx-get="/leagues/{{ .League.ID }}/players/search"
+        hx-trigger="keyup changed delay:300ms"
+        hx-target="#player-search-results"
+        hx-swap="outerHTML"
+      >
+      {{ template "player_search_results.html" .PlayerSearch }}
+    </div>
+  {{ else }}
+    <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 class="text-xl font-semibold">Dodaj graczy</h2>
+      <p class="mt-3 text-sm text-slate-500">Tylko administratorzy ligi moga dodawac zawodnikow.</p>
+    </div>
+  {{ end }}
+</section>
+
+<section class="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+  <h2 class="text-xl font-semibold">Administratorzy ligi</h2>
+  <div class="mt-4 grid gap-2">
+    {{ if .Admins }}
+      {{ range .Admins }}
+        <div class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-slate-50 px-4 py-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="badge badge-outline">{{ .User.FullName }}</span>
+            <span class="badge badge-outline">
+              {{ if eq .Role "moderator" }}Moderator{{ else }}Moderator-Gracz{{ end }}
+            </span>
+          </div>
+          {{ if $.IsAdmin }}
+            {{ if ne .User.ID $.League.OwnerID }}
+              <div class="flex flex-wrap items-center gap-2">
+                <form method="post" action="/leagues/{{ $.League.ID }}/admins/{{ .User.ID }}/role">
+                  <select name="role" class="select select-bordered select-xs">
+                    <option value="admin-player" {{ if eq .Role "admin-player" }}selected{{ end }}>Moderator-Gracz</option>
+                    <option value="moderator" {{ if eq .Role "moderator" }}selected{{ end }}>Moderator</option>
+                  </select>
+                  <button class="btn btn-xs btn-outline">Zmien role</button>
+                </form>
+                <label for="remove-admin-{{ .User.ID }}" class="btn btn-xs btn-outline btn-error">Usun</label>
+                <input type="checkbox" id="remove-admin-{{ .User.ID }}" class="modal-toggle">
+                <div class="modal" role="dialog">
+                  <div class="modal-box">
+                    <h3 class="text-lg font-semibold">Usun administratora</h3>
+                    <p class="mt-2 text-sm text-slate-500">
+                      Czy na pewno chcesz usunac {{ .User.FullName }} z administratorow ligi?
+                    </p>
+                    <div class="mt-4 flex flex-wrap gap-2">
+                      <form method="post" action="/leagues/{{ $.League.ID }}/admins/{{ .User.ID }}/remove">
+                        <button class="btn btn-error btn-sm">Usun</button>
+                      </form>
+                      <label for="remove-admin-{{ .User.ID }}" class="btn btn-outline btn-sm">Anuluj</label>
+                    </div>
+                  </div>
+                  <label class="modal-backdrop" for="remove-admin-{{ .User.ID }}">Close</label>
+                </div>
+              </div>
+            {{ end }}
+          {{ end }}
+        </div>
+      {{ end }}
+    {{ else }}
+      <span class="text-sm text-slate-500">Brak administratorow.</span>
+    {{ end }}
+  </div>
+  {{ if .IsAdmin }}
+    <div class="mt-4">
+      <label class="label"><span class="label-text">Dodaj administratora</span></label>
+      {{ if .AdminCandidates }}
+        <form method="post" action="/leagues/{{ .League.ID }}/admins" class="flex flex-wrap items-center gap-2">
+          <select name="user_id" class="select select-bordered">
+            {{ range .AdminCandidates }}
+              <option value="{{ .ID }}">{{ .FullName }}</option>
+            {{ end }}
+          </select>
+          <select name="role" class="select select-bordered">
+            <option value="admin-player">Moderator-Gracz</option>
+            <option value="moderator">Moderator</option>
+          </select>
+          <button class="btn btn-primary btn-sm">Dodaj</button>
+        </form>
+      {{ else }}
+        <div class="text-sm text-slate-500">Wszyscy uzytkownicy sa juz administratorami.</div>
+      {{ end }}
+    </div>
+  {{ end }}
+</section>
+
+<section class="mb-8 grid gap-6 lg:grid-cols-[1.4fr,1fr]">
+  <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <h2 class="text-xl font-semibold">Tabela ligowa</h2>
+    <div class="mt-4 overflow-x-auto">
+      <table class="table w-full">
+        <thead>
+          <tr>
+            <th>Gracz</th>
+            <th>Pkt</th>
+            <th>M</th>
+            <th>Sety</th>
+            <th>Punkty</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{ range .Standings }}
+            <tr>
+              <td class="font-medium">{{ .Player.FullName }}</td>
+              <td>{{ .Points }}</td>
+              <td>{{ .Matches }}</td>
+              <td>{{ .SetsWon }}-{{ .SetsLost }}</td>
+              <td>{{ .PointsWon }}-{{ .PointsLost }}</td>
+            </tr>
+          {{ end }}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <h2 class="text-xl font-semibold">Dodaj wynik</h2>
+    {{ if or .IsAdmin .IsPlayer }}
+      <form method="post" action="/leagues/{{ .League.ID }}/matches" class="mt-4 grid gap-3" hx-post="/leagues/{{ .League.ID }}/matches" hx-target="#matches-list" hx-swap="afterbegin">
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label class="label"><span class="label-text">Gracz A</span></label>
+            <select name="player_a" class="select select-bordered w-full" required>
+              {{ range .Players }}
+                <option value="{{ .ID }}">{{ .FullName }}</option>
+              {{ end }}
+            </select>
+          </div>
+          <div>
+            <label class="label"><span class="label-text">Gracz B</span></label>
+            <select name="player_b" class="select select-bordered w-full" required>
+              {{ range .Players }}
+                <option value="{{ .ID }}">{{ .FullName }}</option>
+              {{ end }}
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-5">
+          {{ range .SetsRange }}
+            <div>
+              <label class="label"><span class="label-text">Set {{ . }}</span></label>
+              <div class="flex gap-2">
+                <input type="number" name="set_{{ . }}_a" min="0" class="input input-bordered w-16" placeholder="A">
+                <input type="number" name="set_{{ . }}_b" min="0" class="input input-bordered w-16" placeholder="B">
+              </div>
+            </div>
+          {{ end }}
+        </div>
+        <button class="btn btn-primary">Zglos wynik</button>
+      </form>
+    {{ else }}
+      <p class="mt-3 text-sm text-slate-500">Tylko gracze ligi lub administratorzy moga dodawac wyniki.</p>
+    {{ end }}
+  </div>
+</section>
+
+<section id="league-matches" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+  <div class="flex items-center justify-between">
+    <h2 class="text-xl font-semibold">Historia meczow</h2>
+    <span class="text-sm text-slate-500">Status: oczekujace i potwierdzone</span>
+  </div>
+  <div id="matches-list" class="mt-4 grid gap-3">
+    {{ if .Matches }}
+      {{ range .Matches }}
+        {{ template "match_row.html" . }}
+      {{ end }}
+      {{ if gt .TotalPages 1 }}
+        <div class="mt-2 flex flex-wrap items-center justify-between gap-2">
+          <div class="text-xs text-slate-500">Strona {{ .Page }} z {{ .TotalPages }}</div>
+          <div class="flex flex-wrap gap-2">
+            {{ if .HasPrev }}
+              <a class="btn btn-xs btn-outline" href="/leagues/{{ .League.ID }}?page={{ .PrevPage }}#league-matches">Poprzednia</a>
+            {{ end }}
+            {{ range .Pages }}
+              <a class="btn btn-xs {{ if eq . $.Page }}btn-primary{{ else }}btn-outline{{ end }}" href="/leagues/{{ $.League.ID }}?page={{ . }}#league-matches">{{ . }}</a>
+            {{ end }}
+            {{ if .HasNext }}
+              <a class="btn btn-xs btn-outline" href="/leagues/{{ .League.ID }}?page={{ .NextPage }}#league-matches">Nastepna</a>
+            {{ end }}
+          </div>
+        </div>
+      {{ end }}
+    {{ else }}
+      <div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500">
+        Brak meczow do wyswietlenia.
+      </div>
+    {{ end }}
+  </div>
+</section>
+{{ end }}

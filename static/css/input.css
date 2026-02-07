@@ -1,0 +1,8 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+/* Sources are relative to this file (static/css). */
+@source "../../templates/**/*.html";
+@source "../../templates/**/*.templ";
+@source "../../internal/**/*.go";
+@source "../../main.go";

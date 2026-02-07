@@ -1,0 +1,103 @@
+{{ define "content" }}
+<section class="max-w-3xl">
+  <div class="mb-6">
+    <h1 class="text-2xl font-semibold">Dodaj mecz towarzyski</h1>
+    <p class="mt-1 text-sm text-slate-500">Wybierz przeciwnika i wpisz wynik spotkania.</p>
+  </div>
+  <form
+    method="post"
+    action="/friendlies"
+    class="grid gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+  >
+    <div class="grid gap-3 rounded-xl border border-slate-200/70 bg-slate-50 p-4 sm:grid-cols-2">
+      <div>
+        <div class="text-xs uppercase tracking-wide text-slate-400">Gracz A</div>
+        <div class="mt-1 text-base font-semibold text-slate-900">{{ .CurrentUser.FullName }}</div>
+        <div class="text-xs text-slate-500">Zalogowany</div>
+      </div>
+      <div>
+        <div class="text-xs uppercase tracking-wide text-slate-400">Gracz B</div>
+        <div id="friendly-opponent-name" class="mt-1 text-base font-semibold text-slate-900">Wybierz przeciwnika</div>
+        <div id="friendly-opponent-hint" class="text-xs text-slate-500">Przez wyszukiwarke ponizej</div>
+      </div>
+    </div>
+    {{ template "friendly_search_panel.html" .Form }}
+    <div id="friendly-selected">
+      {{ template "friendly_selected.html" .Form }}
+    </div>
+    <div>
+      <label class="label"><span class="label-text">Data rozegrania</span></label>
+      <input type="datetime-local" name="played_at" class="input input-bordered w-full" value="{{ .Form.PlayedAt }}">
+    </div>
+    <input type="hidden" name="sets_count" id="sets-count" value="5">
+    <div class="flex items-center justify-between">
+      <label class="label"><span class="label-text">Sety</span></label>
+      <button type="button" id="add-set-btn" class="btn btn-xs btn-outline">Dodaj set</button>
+    </div>
+    <div id="sets-grid" class="grid grid-cols-2 gap-3 sm:grid-cols-5">
+      <div data-set="1">
+        <label class="label"><span class="label-text">Set 1</span></label>
+        <div class="flex gap-2">
+          <input type="number" name="set_1_a" min="0" class="input input-bordered w-16" placeholder="A">
+          <input type="number" name="set_1_b" min="0" class="input input-bordered w-16" placeholder="B">
+        </div>
+      </div>
+      <div data-set="2">
+        <label class="label"><span class="label-text">Set 2</span></label>
+        <div class="flex gap-2">
+          <input type="number" name="set_2_a" min="0" class="input input-bordered w-16" placeholder="A">
+          <input type="number" name="set_2_b" min="0" class="input input-bordered w-16" placeholder="B">
+        </div>
+      </div>
+      <div data-set="3">
+        <label class="label"><span class="label-text">Set 3</span></label>
+        <div class="flex gap-2">
+          <input type="number" name="set_3_a" min="0" class="input input-bordered w-16" placeholder="A">
+          <input type="number" name="set_3_b" min="0" class="input input-bordered w-16" placeholder="B">
+        </div>
+      </div>
+      <div data-set="4">
+        <label class="label"><span class="label-text">Set 4</span></label>
+        <div class="flex gap-2">
+          <input type="number" name="set_4_a" min="0" class="input input-bordered w-16" placeholder="A">
+          <input type="number" name="set_4_b" min="0" class="input input-bordered w-16" placeholder="B">
+        </div>
+      </div>
+      <div data-set="5">
+        <label class="label"><span class="label-text">Set 5</span></label>
+        <div class="flex gap-2">
+          <input type="number" name="set_5_a" min="0" class="input input-bordered w-16" placeholder="A">
+          <input type="number" name="set_5_b" min="0" class="input input-bordered w-16" placeholder="B">
+        </div>
+      </div>
+    </div>
+    <div class="flex flex-wrap gap-3">
+      <button class="btn btn-primary">Dodaj wynik</button>
+      <a href="/" class="btn btn-ghost">Wroc</a>
+    </div>
+  </form>
+</section>
+<script>
+  (function () {
+    var addBtn = document.getElementById("add-set-btn");
+    var grid = document.getElementById("sets-grid");
+    var counter = document.getElementById("sets-count");
+    if (!addBtn || !grid || !counter) return;
+
+    addBtn.addEventListener("click", function () {
+      var nextIndex = parseInt(counter.value || "0", 10) + 1;
+      counter.value = String(nextIndex);
+
+      var wrapper = document.createElement("div");
+      wrapper.setAttribute("data-set", String(nextIndex));
+      wrapper.innerHTML =
+        '<label class="label"><span class="label-text">Set ' + nextIndex + '</span></label>' +
+        '<div class="flex gap-2">' +
+        '<input type="number" name="set_' + nextIndex + '_a" min="0" class="input input-bordered w-16" placeholder="A">' +
+        '<input type="number" name="set_' + nextIndex + '_b" min="0" class="input input-bordered w-16" placeholder="B">' +
+        '</div>';
+      grid.appendChild(wrapper);
+    });
+  })();
+</script>
+{{ end }}

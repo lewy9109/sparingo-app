@@ -1,0 +1,7 @@
+/node_modules/
+.idea
+.env
+cdk.out/
+cdk/node_modules/
+cdk/.jsii/
+cdk/.cdk.staging/

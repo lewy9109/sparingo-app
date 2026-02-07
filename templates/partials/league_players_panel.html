@@ -1,0 +1,17 @@
+{{ define "league_players_panel.html" }}
+<div id="league-players-panel" {{ if .SwapOOB }}hx-swap-oob="true"{{ end }} class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+  <div class="flex items-center justify-between">
+    <h2 class="text-xl font-semibold">Gracze w lidze</h2>
+    <span class="text-sm text-slate-500">Liczba: {{ len .Players }}</span>
+  </div>
+  <div class="mt-4 flex flex-wrap gap-2">
+    {{ if .Players }}
+      {{ range .Players }}
+        <span class="badge badge-outline">{{ .FullName }}</span>
+      {{ end }}
+    {{ else }}
+      <span class="text-sm text-slate-500">Brak dodanych graczy.</span>
+    {{ end }}
+  </div>
+</div>
+{{ end }}

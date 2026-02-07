@@ -1,0 +1,166 @@
+{{ define "friendly_dashboard.html" }}
+<section id="friendly-dashboard" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <h2 class="text-xl font-semibold">Mecze towarzyskie</h2>
+    <div class="flex flex-wrap gap-2">
+      <button
+        class="btn btn-xs {{ if eq .Period "month" }}btn-primary{{ else }}btn-outline{{ end }}"
+        hx-get="/friendlies/dashboard?period=month&month={{ .CustomMonth }}&year={{ .CustomYear }}&opponent_id={{ .OpponentID }}&page=1"
+        hx-target="#friendly-dashboard"
+        hx-swap="outerHTML"
+      >
+        Biezacy miesiac
+      </button>
+      <button
+        class="btn btn-xs {{ if eq .Period "year" }}btn-primary{{ else }}btn-outline{{ end }}"
+        hx-get="/friendlies/dashboard?period=year&month={{ .CustomMonth }}&year={{ .CustomYear }}&opponent_id={{ .OpponentID }}&page=1"
+        hx-target="#friendly-dashboard"
+        hx-swap="outerHTML"
+      >
+        Biezacy rok
+      </button>
+      <button
+        class="btn btn-xs {{ if eq .Period "custom" }}btn-primary{{ else }}btn-outline{{ end }}"
+        hx-get="/friendlies/dashboard?period=custom&month={{ .CustomMonth }}&year={{ .CustomYear }}&opponent_id={{ .OpponentID }}&page=1"
+        hx-target="#friendly-dashboard"
+        hx-swap="outerHTML"
+      >
+        Wybierz miesiac
+      </button>
+    </div>
+  </div>
+
+  <div class="mt-4 grid gap-4 lg:grid-cols-[1.2fr,1fr]">
+    <div class="grid gap-4">
+      {{ if eq .Period "custom" }}
+        <form
+          class="grid gap-3 rounded-xl border border-slate-200/70 bg-slate-50 p-4"
+          hx-get="/friendlies/dashboard"
+          hx-target="#friendly-dashboard"
+          hx-swap="outerHTML"
+          hx-trigger="change"
+        >
+          <input type="hidden" name="period" value="custom">
+          <input type="hidden" name="opponent_id" value="{{ .OpponentID }}">
+          <input type="hidden" name="page" value="1">
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label class="label"><span class="label-text">Miesiac</span></label>
+              <select name="month" class="select select-bordered w-full">
+                {{ range .MonthOptions }}
+                  <option value="{{ .Value }}" {{ if eq .Value $.CustomMonth }}selected{{ end }}>{{ .Label }}</option>
+                {{ end }}
+              </select>
+            </div>
+            <div>
+              <label class="label"><span class="label-text">Rok</span></label>
+              <select name="year" class="select select-bordered w-full">
+                {{ range .YearOptions }}
+                  <option value="{{ . }}" {{ if eq . $.CustomYear }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+              </select>
+            </div>
+          </div>
+        </form>
+      {{ end }}
+
+      <form
+        class="grid gap-2"
+        hx-get="/friendlies/dashboard"
+        hx-target="#friendly-dashboard"
+        hx-swap="outerHTML"
+        hx-trigger="change"
+      >
+        <input type="hidden" name="period" value="{{ .Period }}">
+        <input type="hidden" name="month" value="{{ .CustomMonth }}">
+        <input type="hidden" name="year" value="{{ .CustomYear }}">
+        <input type="hidden" name="page" value="1">
+        <label class="label"><span class="label-text">Filtruj po przeciwniku</span></label>
+        <select name="opponent_id" class="select select-bordered w-full">
+          <option value="">Wszyscy przeciwnicy</option>
+          {{ range .Opponents }}
+            <option value="{{ .ID }}" {{ if eq .ID $.OpponentID }}selected{{ end }}>{{ .FullName }}</option>
+          {{ end }}
+        </select>
+      </form>
+
+      {{ if .Summary }}
+        <div class="rounded-xl border border-slate-200/70 bg-slate-50 p-4">
+          <div class="text-sm text-slate-500">Podsumowanie vs {{ .Summary.OpponentName }}</div>
+          <div class="mt-3 overflow-x-auto">
+            <table class="table w-full">
+              <thead>
+                <tr>
+                  <th>Mecze</th>
+                  <th>Wygrane</th>
+                  <th>Przegrane</th>
+                  <th>Sety</th>
+                  <th>Punkty</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>{{ .Summary.Matches }}</td>
+                  <td>{{ .Summary.Wins }}</td>
+                  <td>{{ .Summary.Losses }}</td>
+                  <td>{{ .Summary.SetsWon }}-{{ .Summary.SetsLost }}</td>
+                  <td>{{ .Summary.PointsWon }}-{{ .Summary.PointsLost }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      {{ end }}
+    </div>
+
+    <div class="grid gap-3">
+      {{ if .Matches }}
+        {{ range .Matches }}
+          {{ template "friendly_match_row.html" . }}
+        {{ end }}
+        {{ if gt .TotalPages 1 }}
+          <div class="mt-2 flex flex-wrap items-center justify-between gap-2">
+            <div class="text-xs text-slate-500">Strona {{ .Page }} z {{ .TotalPages }}</div>
+            <div class="flex flex-wrap gap-2">
+              {{ if .HasPrev }}
+                <button
+                  class="btn btn-xs btn-outline"
+                  hx-get="/friendlies/dashboard?period={{ .Period }}&month={{ .CustomMonth }}&year={{ .CustomYear }}&opponent_id={{ .OpponentID }}&page={{ .PrevPage }}"
+                  hx-target="#friendly-dashboard"
+                  hx-swap="outerHTML"
+                >
+                  Poprzednia
+                </button>
+              {{ end }}
+              {{ range .Pages }}
+                <button
+                  class="btn btn-xs {{ if eq . $.Page }}btn-primary{{ else }}btn-outline{{ end }}"
+                  hx-get="/friendlies/dashboard?period={{ $.Period }}&month={{ $.CustomMonth }}&year={{ $.CustomYear }}&opponent_id={{ $.OpponentID }}&page={{ . }}"
+                  hx-target="#friendly-dashboard"
+                  hx-swap="outerHTML"
+                >
+                  {{ . }}
+                </button>
+              {{ end }}
+              {{ if .HasNext }}
+                <button
+                  class="btn btn-xs btn-outline"
+                  hx-get="/friendlies/dashboard?period={{ .Period }}&month={{ .CustomMonth }}&year={{ .CustomYear }}&opponent_id={{ .OpponentID }}&page={{ .NextPage }}"
+                  hx-target="#friendly-dashboard"
+                  hx-swap="outerHTML"
+                >
+                  Nastepna
+                </button>
+              {{ end }}
+            </div>
+          </div>
+        {{ end }}
+      {{ else }}
+        <div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500">
+          Brak wynikow do wyswietlenia.
+        </div>
+      {{ end }}
+    </div>
+  </div>
+</section>
+{{ end }}
