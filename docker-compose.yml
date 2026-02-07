@@ -1,7 +1,15 @@
 services:
-  dynamodb:
-    image: amazon/dynamodb-local
-    container_name: sqoush-dynamodb-local
+  app:
+    build: .
+    container_name: sqoush-app
     ports:
-      - "8000:8000"
-    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb"]
+      - "8080:8080"
+    environment:
+      - APP=prod
+      - DB_PATH=/data/sqoush.db
+      - DB_MIGRATIONS_DIR=/app/migrations
+    volumes:
+      - sqoush-data:/data
+
+volumes:
+  sqoush-data:
