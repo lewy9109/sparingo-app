@@ -8,12 +8,13 @@ import (
 	"os"
 	"strings"
 
+	"sqoush-app/internal/store"
+	"sqoush-app/internal/web"
+
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/awslabs/aws-lambda-go-api-proxy/httpadapter"
 	"github.com/go-chi/chi/v5"
 	"github.com/joho/godotenv"
-	"sqoush-app/internal/store"
-	"sqoush-app/internal/web"
 )
 
 //go:embed templates/* templates/partials/* static/* static/css/* static/img/*
@@ -70,6 +71,6 @@ func main() {
 	} else {
 		// Jesteśmy lokalnie -> Uruchom zwykły serwer HTTP
 		log.Println("Uruchamianie lokalnie na :8080...")
-		http.ListenAndServe(":8080", r)
+		http.ListenAndServe(":80:wq", r)
 	}
 }

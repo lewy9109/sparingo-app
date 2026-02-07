@@ -3,7 +3,7 @@ services:
     build: .
     container_name: sqoush-app
     ports:
-      - "8080:8080"
+      - "80:80"
     environment:
       - APP=prod
       - DB_PATH=/data/sqoush.db
