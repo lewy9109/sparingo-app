@@ -1,6 +1,7 @@
 /node_modules/
 .idea
 .env
+.env.local
 cdk.out/
 cdk/node_modules/
 cdk/.jsii/
