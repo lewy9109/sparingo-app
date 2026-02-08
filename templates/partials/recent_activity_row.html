@@ -15,17 +15,17 @@
     {{ if .CanConfirm }}
       {{ if eq .Kind "league" }}
         <form method="post" action="/matches/{{ .MatchID }}/confirm">
-          <button class="btn btn-xs btn-success">Potwierdz</button>
+          <button class="btn btn-xs btn-success">Potwierdź</button>
         </form>
         <form method="post" action="/matches/{{ .MatchID }}/reject">
-          <button class="btn btn-xs btn-outline btn-error">Odrzuc</button>
+          <button class="btn btn-xs btn-outline btn-error">Odrzuć</button>
         </form>
       {{ else }}
         <form method="post" action="/friendlies/{{ .MatchID }}/confirm">
-          <button class="btn btn-xs btn-success">Potwierdz</button>
+          <button class="btn btn-xs btn-success">Potwierdź</button>
         </form>
         <form method="post" action="/friendlies/{{ .MatchID }}/reject">
-          <button class="btn btn-xs btn-outline btn-error">Odrzuc</button>
+          <button class="btn btn-xs btn-outline btn-error">Odrzuć</button>
         </form>
       {{ end }}
     {{ else }}

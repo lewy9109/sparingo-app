@@ -1,28 +1,27 @@
 # Dashboard
 
-## Mam podglad do lig w ktorych uczestnicze 
-> jesli nie uczestnicze w zadnej lidze to mam napisz ze 
-> obecnie nie biore udzialu w zadnej lidze i potrzebuje wyszukiwarke lig gdzie przy nazwie 
-> ligi bede mial przycisk z prosba o dolaczenie do ligi
+## Mam podgląd do lig, w których uczestniczę
+> jeśli nie uczestniczę w żadnej lidze, to mam napis, że
+> obecnie nie biorę udziału w żadnej lidze i potrzebuję wyszukiwarkę lig, gdzie przy nazwie
+> ligi będę miał przycisk z prośbą o dołączenie do ligi
 
-## TABY ajaxowe z podzialem na: (w kazdej zakladce pokazujemy max po 6 wynikow, a reszte pokazujemy po kliknieciu na przycisk "pokaz wiecej")
-### Ostatnio rozgrywane mecze 
-> widze tu ostanie 10 meczy jakie rozgrywalem, z kim, kiedy i jaki byl wynik.
-> sa to mecze  potwierdzone i nie potwierdzone, ale nie widze meczy odrzuconych,
-> jesli jest tam mecz niepotwierdzony to powinien byc przycisk potwierdz wynik
+## TABY ajaxowe z podziałem na: (w każdej zakładce pokazujemy max po 6 wyników, a resztę pokazujemy po kliknięciu na przycisk "pokaż więcej")
+### Ostatnio rozgrywane mecze
+> widzę tu ostatnie 10 meczów jakie rozgrywałem, z kim, kiedy i jaki był wynik.
+> są to mecze potwierdzone i niepotwierdzone, ale nie widzę meczów odrzuconych,
+> jeśli jest tam mecz niepotwierdzony, to powinien być przycisk "potwierdź wynik"
 
-### Potwierdz mecze
-> widze tu wszystkie mecze ktore rozgrywalem i czekaja na potwierdzenie przez przeciwnika, i ktore oczekuja na moje potwierdzenie, sortujemy najpierw po tych co ja mam potwierdzic 
-> tam moge potwierdzac wynik meczu, albo odrzucac wynik meczu, jesli wynik jest nieprawidlowy, albo przeciwnik sie pomylil, albo chce oszukac.
+### Potwierdź mecze
+> widzę tu wszystkie mecze, które rozgrywałem i czekają na potwierdzenie przez przeciwnika, i które oczekują na moje potwierdzenie; sortujemy najpierw po tych, co ja mam potwierdzić
+> tam mogę potwierdzać wynik meczu albo odrzucać wynik meczu, jeśli wynik jest nieprawidłowy, albo przeciwnik się pomylił, albo chce oszukać.
 
 ### Mecze towarzyskie
-> widze tu wszystkie mecze towarzyskie jakie rozgrywalem, z kim, kiedy i jaki byl wynik, sa to mecze potwierdzone i nie potwierdzone,
+> widzę tu wszystkie mecze towarzyskie jakie rozgrywałem, z kim, kiedy i jaki był wynik; są to mecze potwierdzone i niepotwierdzone.
 
-#### we wszystkich zakladkach jesli bede chcail zobaczyc wiecej meczy to po kliknieciu na przycisk "pokaz wiecej" mam przekierowanie na pelen podglad z paginacja 
+#### we wszystkich zakładkach, jeśli będę chciał zobaczyć więcej meczów, to po kliknięciu na przycisk "pokaż więcej" mam przekierowanie na pełen podgląd z paginacją
 
 ## Hamburger menu z lewej strony gdzie mam akcje:
 - Dodaj mecz towarzyski
-- moja liga (jesli uczestnicze w jakiejkolwiek lidze)
-- Stworz lige
-- wyszukaj lige
-
+- moja liga (jeśli uczestniczę w jakiejkolwiek lidze)
+- Stwórz ligę
+- wyszukaj ligę

@@ -366,22 +366,22 @@ func seedData(s *MemoryStore) {
 	seedUsers := []model.User{
 		{ID: uuid.NewString(), FirstName: "Krystian", LastName: "Lewandowski", Email: "lewy9109@gmail.com", Skill: model.SkillIntermediate, AvatarURL: "https://i.pravatar.cc/100?img=12"},
 		{ID: uuid.NewString(), FirstName: "Lewy", LastName: "Nowy", Email: "lewy9109+1@gmail.com", Skill: model.SkillBeginner, AvatarURL: "https://i.pravatar.cc/100?img=61"},
-		{ID: uuid.NewString(), FirstName: "Pawel", LastName: "Gora", Email: "pawel.gora@example.com", Skill: model.SkillBeginner, AvatarURL: "https://i.pravatar.cc/100?img=32"},
+		{ID: uuid.NewString(), FirstName: "Paweł", LastName: "Góra", Email: "pawel.gora@example.com", Skill: model.SkillBeginner, AvatarURL: "https://i.pravatar.cc/100?img=32"},
 		{ID: uuid.NewString(), FirstName: "Jacek", LastName: "Nowak", Email: "jacek.nowak@example.com", Skill: model.SkillBeginner, AvatarURL: "https://i.pravatar.cc/100?img=33"},
-		{ID: uuid.NewString(), FirstName: "Tomek", LastName: "Zielinski", Email: "tomek.zielinski@example.com", Skill: model.SkillBeginner, AvatarURL: "https://i.pravatar.cc/100?img=34"},
-		{ID: uuid.NewString(), FirstName: "Wladek", LastName: "Kowal", Email: "wladek.kowal@example.com", Skill: model.SkillBeginner, AvatarURL: "https://i.pravatar.cc/100?img=35"},
+		{ID: uuid.NewString(), FirstName: "Tomek", LastName: "Zieliński", Email: "tomek.zielinski@example.com", Skill: model.SkillBeginner, AvatarURL: "https://i.pravatar.cc/100?img=34"},
+		{ID: uuid.NewString(), FirstName: "Władek", LastName: "Kowal", Email: "wladek.kowal@example.com", Skill: model.SkillBeginner, AvatarURL: "https://i.pravatar.cc/100?img=35"},
 		{ID: uuid.NewString(), FirstName: "Damian", LastName: "Lis", Email: "damian.lis@example.com", Skill: model.SkillBeginner, AvatarURL: "https://i.pravatar.cc/100?img=36"},
 		{ID: uuid.NewString(), FirstName: "Aneta", LastName: "Zalewska", Email: "aneta.zalewska@example.com", Skill: model.SkillIntermediate, AvatarURL: "https://i.pravatar.cc/100?img=47"},
-		{ID: uuid.NewString(), FirstName: "Marek", LastName: "Krol", Email: "marek.krol@example.com", Skill: model.SkillIntermediate, AvatarURL: "https://i.pravatar.cc/100?img=48"},
+		{ID: uuid.NewString(), FirstName: "Marek", LastName: "Król", Email: "marek.krol@example.com", Skill: model.SkillIntermediate, AvatarURL: "https://i.pravatar.cc/100?img=48"},
 		{ID: uuid.NewString(), FirstName: "Kasia", LastName: "Wrona", Email: "kasia.wrona@example.com", Skill: model.SkillBeginner, AvatarURL: "https://i.pravatar.cc/100?img=49"},
 		{ID: uuid.NewString(), FirstName: "Ola", LastName: "Chmiel", Email: "ola.chmiel@example.com", Skill: model.SkillPro, AvatarURL: "https://i.pravatar.cc/100?img=50"},
 		{ID: uuid.NewString(), FirstName: "Piotr", LastName: "Maj", Email: "piotr.maj@example.com", Skill: model.SkillIntermediate, AvatarURL: "https://i.pravatar.cc/100?img=51"},
 		{ID: uuid.NewString(), FirstName: "Lena", LastName: "Jankowska", Email: "lena.jankowska@example.com", Skill: model.SkillBeginner, AvatarURL: "https://i.pravatar.cc/100?img=52"},
 		{ID: uuid.NewString(), FirstName: "Bartek", LastName: "Nowicki", Email: "bartek.nowicki@example.com", Skill: model.SkillBeginner, AvatarURL: "https://i.pravatar.cc/100?img=53"},
-		{ID: uuid.NewString(), FirstName: "Rafal", LastName: "Olszewski", Email: "rafal.olszewski@example.com", Skill: model.SkillIntermediate, AvatarURL: "https://i.pravatar.cc/100?img=54"},
+		{ID: uuid.NewString(), FirstName: "Rafał", LastName: "Olszewski", Email: "rafal.olszewski@example.com", Skill: model.SkillIntermediate, AvatarURL: "https://i.pravatar.cc/100?img=54"},
 		{ID: uuid.NewString(), FirstName: "Ewa", LastName: "Kania", Email: "ewa.kania@example.com", Skill: model.SkillIntermediate, AvatarURL: "https://i.pravatar.cc/100?img=55"},
-		{ID: uuid.NewString(), FirstName: "Krzysztof", LastName: "Malek", Email: "krzysztof.malek@example.com", Skill: model.SkillBeginner, AvatarURL: "https://i.pravatar.cc/100?img=56"},
-		{ID: uuid.NewString(), FirstName: "Monika", LastName: "Wozniak", Email: "monika.wozniak@example.com", Skill: model.SkillBeginner, AvatarURL: "https://i.pravatar.cc/100?img=57"},
+		{ID: uuid.NewString(), FirstName: "Krzysztof", LastName: "Małek", Email: "krzysztof.malek@example.com", Skill: model.SkillBeginner, AvatarURL: "https://i.pravatar.cc/100?img=56"},
+		{ID: uuid.NewString(), FirstName: "Monika", LastName: "Woźniak", Email: "monika.wozniak@example.com", Skill: model.SkillBeginner, AvatarURL: "https://i.pravatar.cc/100?img=57"},
 		{ID: uuid.NewString(), FirstName: "Tomasz", LastName: "Jura", Email: "tomasz.jura@example.com", Skill: model.SkillIntermediate, AvatarURL: "https://i.pravatar.cc/100?img=58"},
 		{ID: uuid.NewString(), FirstName: "Natalia", LastName: "Kruk", Email: "natalia.kruk@example.com", Skill: model.SkillPro, AvatarURL: "https://i.pravatar.cc/100?img=59"},
 	}
@@ -402,10 +402,10 @@ func seedData(s *MemoryStore) {
 		Name, Description, Location string
 		Sets                        int
 	}{
-		{"Liga Warszawska", "Liga miejska dla graczy z calej Warszawy.", "Warsaw Squash Center", 5},
-		{"Liga Klubowa", "Rozgrywki klubowe dla stalych bywalcow.", "Squash Arena", 5},
+		{"Liga Warszawska", "Liga miejska dla graczy z całej Warszawy.", "Warsaw Squash Center", 5},
+		{"Liga Klubowa", "Rozgrywki klubowe dla stałych bywalców.", "Squash Arena", 5},
 		{"Liga Weekendowa", "Spotkania weekendowe dla znajomych.", "City Squash Hub", 3},
-		{"Liga Pro", "Mecze dla zaawansowanych zawodnikow.", "ProSquash Hall", 5},
+		{"Liga Pro", "Mecze dla zaawansowanych zawodników.", "ProSquash Hall", 5},
 	}
 
 	leagues := make([]model.League, 0, len(leagueDefs))

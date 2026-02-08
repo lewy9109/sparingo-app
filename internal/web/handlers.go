@@ -83,7 +83,7 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	case "friendly_added":
 		flash = "Dodano mecz towarzyski."
 	case "report_added":
-		flash = "Dziekujemy! Zgloszenie zostalo zapisane."
+		flash = "Dziękujemy! Zgłoszenie zostało zapisane."
 	}
 	recentEntries := s.leagueActivityEntries(currentUser, map[model.MatchStatus]bool{
 		model.MatchPending:   true,
@@ -121,9 +121,9 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 			FlashSuccess:    flash,
 		},
 		Leagues:           leagues,
-		DashboardRecent:   buildDashboardTabView(recentEntries, 10, 6, "/matches/recent", "Brak wynikow do wyswietlenia."),
-		DashboardPending:  buildDashboardTabView(pendingEntries, 0, 6, "/matches/pending", "Brak meczow do potwierdzenia."),
-		DashboardFriendly: buildDashboardTabView(friendlyEntries, 0, 6, "/friendlies/dashboard", "Brak wynikow do wyswietlenia."),
+		DashboardRecent:   buildDashboardTabView(recentEntries, 10, 6, "/matches/recent", "Brak wyników do wyświetlenia."),
+		DashboardPending:  buildDashboardTabView(pendingEntries, 0, 6, "/matches/pending", "Brak meczów do potwierdzenia."),
+		DashboardFriendly: buildDashboardTabView(friendlyEntries, 0, 6, "/friendlies/dashboard", "Brak wyników do wyświetlenia."),
 		LeagueSearch:      s.leagueSearchView("", currentUser),
 	}
 	if err := s.templates.Render(w, "home.html", view); err != nil {
@@ -140,7 +140,7 @@ func (s *Server) handleDashboardRecentTab(w http.ResponseWriter, r *http.Request
 	sort.Slice(entries, func(i, j int) bool {
 		return entries[i].When.After(entries[j].When)
 	})
-	view := buildDashboardTabView(entries, 10, 6, "/matches/recent", "Brak wynikow do wyswietlenia.")
+	view := buildDashboardTabView(entries, 10, 6, "/matches/recent", "Brak wyników do wyświetlenia.")
 	if err := s.templates.RenderPartial(w, "dashboard_tab.html", view); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -157,7 +157,7 @@ func (s *Server) handleDashboardPendingTab(w http.ResponseWriter, r *http.Reques
 		}
 		return entries[i].When.After(entries[j].When)
 	})
-	view := buildDashboardTabView(entries, 0, 6, "/matches/pending", "Brak meczow do potwierdzenia.")
+	view := buildDashboardTabView(entries, 0, 6, "/matches/pending", "Brak meczów do potwierdzenia.")
 	if err := s.templates.RenderPartial(w, "dashboard_tab.html", view); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -172,7 +172,7 @@ func (s *Server) handleDashboardFriendlyTab(w http.ResponseWriter, r *http.Reque
 	sort.Slice(entries, func(i, j int) bool {
 		return entries[i].When.After(entries[j].When)
 	})
-	view := buildDashboardTabView(entries, 0, 6, "/friendlies/dashboard", "Brak wynikow do wyswietlenia.")
+	view := buildDashboardTabView(entries, 0, 6, "/friendlies/dashboard", "Brak wyników do wyświetlenia.")
 	if err := s.templates.RenderPartial(w, "dashboard_tab.html", view); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -206,7 +206,7 @@ func (s *Server) handleMatchesPending(w http.ResponseWriter, r *http.Request) {
 		return entries[i].When.After(entries[j].When)
 	})
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	view := s.buildMatchesListView(entries, page, 10, "/matches/pending", currentUser, "Potwierdz mecze")
+	view := s.buildMatchesListView(entries, page, 10, "/matches/pending", currentUser, "Potwierdź mecze")
 	if err := s.templates.Render(w, "matches_list.html", view); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -219,20 +219,20 @@ func (s *Server) handleDevSwitchUser(w http.ResponseWriter, r *http.Request) {
 	}
 	currentUser := s.currentUser(r)
 	if !isSuperAdmin(currentUser) {
-		http.Error(w, "brak uprawnien", http.StatusForbidden)
+		http.Error(w, "brak uprawnień", http.StatusForbidden)
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "nieprawidlowe dane", http.StatusBadRequest)
+		http.Error(w, "nieprawidłowe dane", http.StatusBadRequest)
 		return
 	}
 	userID := strings.TrimSpace(r.FormValue("user_id"))
 	if userID == "" {
-		http.Error(w, "brak uzytkownika", http.StatusBadRequest)
+		http.Error(w, "brak użytkownika", http.StatusBadRequest)
 		return
 	}
 	if _, ok := s.store.GetUser(userID); !ok {
-		http.Error(w, "nie znaleziono uzytkownika", http.StatusNotFound)
+		http.Error(w, "nie znaleziono użytkownika", http.StatusNotFound)
 		return
 	}
 	setAuthCookie(w, userID)
@@ -253,7 +253,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleLoginPost(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "nieprawidlowe dane", http.StatusBadRequest)
+		http.Error(w, "nieprawidłowe dane", http.StatusBadRequest)
 		return
 	}
 	email := strings.TrimSpace(r.FormValue("email"))
@@ -262,7 +262,7 @@ func (s *Server) handleLoginPost(w http.ResponseWriter, r *http.Request) {
 	if !ok || !checkPassword(user.PasswordHash, password) {
 		view := AuthView{
 			BaseView: BaseView{Title: "Logowanie", IsDev: isDevMode()},
-			Error:    "Nieprawidlowy email lub haslo",
+			Error:    "Nieprawidłowy email lub hasło",
 		}
 		if err := s.templates.Render(w, "login.html", view); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -289,7 +289,7 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleRegisterPost(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "nieprawidlowe dane", http.StatusBadRequest)
+		http.Error(w, "nieprawidłowe dane", http.StatusBadRequest)
 		return
 	}
 	cfg := recaptchaConfigFromEnv()
@@ -302,7 +302,7 @@ func (s *Server) handleRegisterPost(w http.ResponseWriter, r *http.Request) {
 	if firstName == "" || lastName == "" || email == "" || password == "" {
 		view := AuthView{
 			BaseView:         BaseView{Title: "Rejestracja", IsDev: isDevMode()},
-			Error:            "Wypelnij wszystkie pola",
+			Error:            "Wypełnij wszystkie pola",
 			RecaptchaSiteKey: cfg.SiteKey,
 		}
 		if err := s.templates.Render(w, "register.html", view); err != nil {
@@ -313,7 +313,7 @@ func (s *Server) handleRegisterPost(w http.ResponseWriter, r *http.Request) {
 	if len(password) < 8 {
 		view := AuthView{
 			BaseView:         BaseView{Title: "Rejestracja", IsDev: isDevMode()},
-			Error:            "Haslo musi miec min. 8 znakow",
+			Error:            "Hasło musi mieć min. 8 znaków",
 			RecaptchaSiteKey: cfg.SiteKey,
 		}
 		if err := s.templates.Render(w, "register.html", view); err != nil {
@@ -324,7 +324,7 @@ func (s *Server) handleRegisterPost(w http.ResponseWriter, r *http.Request) {
 	if !containsUppercase(password) {
 		view := AuthView{
 			BaseView:         BaseView{Title: "Rejestracja", IsDev: isDevMode()},
-			Error:            "Haslo musi zawierac jedna duza litere",
+			Error:            "Hasło musi zawierać jedną dużą literę",
 			RecaptchaSiteKey: cfg.SiteKey,
 		}
 		if err := s.templates.Render(w, "register.html", view); err != nil {
@@ -335,7 +335,7 @@ func (s *Server) handleRegisterPost(w http.ResponseWriter, r *http.Request) {
 	if password != confirmPassword {
 		view := AuthView{
 			BaseView:         BaseView{Title: "Rejestracja", IsDev: isDevMode()},
-			Error:            "Hasla nie sa takie same",
+			Error:            "Hasła nie są takie same",
 			RecaptchaSiteKey: cfg.SiteKey,
 		}
 		if err := s.templates.Render(w, "register.html", view); err != nil {
@@ -392,7 +392,7 @@ func (s *Server) handleRegisterPost(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		view := AuthView{
 			BaseView: BaseView{Title: "Rejestracja", IsDev: isDevMode()},
-			Error:    "Nie mozna utworzyc konta: " + err.Error(),
+			Error:    "Nie można utworzyć konta: " + err.Error(),
 		}
 		if err := s.templates.Render(w, "register.html", view); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -529,7 +529,7 @@ func (s *Server) handleReportNew(w http.ResponseWriter, r *http.Request) {
 		Form ReportFormView
 	}{
 		BaseView: BaseView{
-			Title:           "Zglos",
+			Title:           "Zgłoś",
 			CurrentUser:     currentUser,
 			Users:           s.store.ListUsers(),
 			IsAuthenticated: currentUser.ID != "",
@@ -549,18 +549,18 @@ func (s *Server) handleReportCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "nieprawidlowe dane", http.StatusBadRequest)
+		http.Error(w, "nieprawidłowe dane", http.StatusBadRequest)
 		return
 	}
 	rType := strings.TrimSpace(r.FormValue("type"))
 	title := strings.TrimSpace(r.FormValue("title"))
 	description := strings.TrimSpace(r.FormValue("description"))
 	if rType != string(model.ReportBug) && rType != string(model.ReportFeature) {
-		s.renderReportFormError(w, currentUser, "Wybierz typ zgloszenia.", rType, title, description)
+		s.renderReportFormError(w, currentUser, "Wybierz typ zgłoszenia.", rType, title, description)
 		return
 	}
 	if title == "" || description == "" {
-		s.renderReportFormError(w, currentUser, "Wypelnij tytul i opis.", rType, title, description)
+		s.renderReportFormError(w, currentUser, "Wypełnij tytuł i opis.", rType, title, description)
 		return
 	}
 	report := model.Report{
@@ -585,7 +585,7 @@ func (s *Server) renderReportFormError(w http.ResponseWriter, currentUser model.
 		Form ReportFormView
 	}{
 		BaseView: BaseView{
-			Title:           "Zglos",
+			Title:           "Zgłoś",
 			CurrentUser:     currentUser,
 			Users:           s.store.ListUsers(),
 			IsAuthenticated: currentUser.ID != "",
@@ -606,7 +606,7 @@ func (s *Server) renderReportFormError(w http.ResponseWriter, currentUser model.
 func (s *Server) handleReportsList(w http.ResponseWriter, r *http.Request) {
 	currentUser := s.currentUser(r)
 	if !isSuperAdmin(currentUser) {
-		http.Error(w, "brak uprawnien", http.StatusForbidden)
+		http.Error(w, "brak uprawnień", http.StatusForbidden)
 		return
 	}
 	reports := s.store.ListReports()
@@ -617,7 +617,7 @@ func (s *Server) handleReportsList(w http.ResponseWriter, r *http.Request) {
 	}
 	view := ReportsView{
 		BaseView: BaseView{
-			Title:           "Zgloszenia",
+			Title:           "Zgłoszenia",
 			CurrentUser:     currentUser,
 			Users:           s.store.ListUsers(),
 			IsAuthenticated: true,
@@ -637,7 +637,7 @@ func (s *Server) handleFriendlyCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "nieprawidlowe dane", http.StatusBadRequest)
+		http.Error(w, "nieprawidłowe dane", http.StatusBadRequest)
 		return
 	}
 	opponentID := r.FormValue("opponent_id")
@@ -651,18 +651,18 @@ func (s *Server) handleFriendlyCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if opponent.ID == currentUser.ID {
-		s.renderFriendlyFormError(w, currentUser, "Nie mozna wybrac siebie", r.FormValue("played_at"))
+		s.renderFriendlyFormError(w, currentUser, "Nie można wybrać siebie", r.FormValue("played_at"))
 		return
 	}
 	setsCount := parseSetsCount(r.FormValue("sets_count"), 20)
 	sets := parseSets(r, setsCount)
 	if len(sets) == 0 {
-		s.renderFriendlyFormError(w, currentUser, "Uzupelnij przynajmniej jeden set (mozesz zostawic puste pozostale).", r.FormValue("played_at"))
+		s.renderFriendlyFormError(w, currentUser, "Uzupełnij przynajmniej jeden set (możesz zostawić puste pozostałe).", r.FormValue("played_at"))
 		return
 	}
 	playedAt, err := parsePlayedAt(r.FormValue("played_at"))
 	if err != nil {
-		http.Error(w, "nieprawidlowa data", http.StatusBadRequest)
+		http.Error(w, "nieprawidłowa data", http.StatusBadRequest)
 		return
 	}
 
@@ -733,7 +733,7 @@ func (s *Server) handleFriendlyConfirm(w http.ResponseWriter, r *http.Request) {
 	}
 	currentUser := s.currentUser(r)
 	if match.ReportedBy == currentUser.ID {
-		http.Error(w, "nie mozesz potwierdzic wlasnego wyniku", http.StatusForbidden)
+		http.Error(w, "nie możesz potwierdzić własnego wyniku", http.StatusForbidden)
 		return
 	}
 	match.Status = model.MatchConfirmed
@@ -762,7 +762,7 @@ func (s *Server) handleFriendlyReject(w http.ResponseWriter, r *http.Request) {
 	}
 	currentUser := s.currentUser(r)
 	if match.ReportedBy == currentUser.ID {
-		http.Error(w, "nie mozesz odrzucic wlasnego wyniku", http.StatusForbidden)
+		http.Error(w, "nie możesz odrzucić własnego wyniku", http.StatusForbidden)
 		return
 	}
 	match.Status = model.MatchRejected
@@ -837,7 +837,7 @@ func (s *Server) handleLeagueJoin(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleLeagueCreate(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "nieprawidlowe dane", http.StatusBadRequest)
+		http.Error(w, "nieprawidłowe dane", http.StatusBadRequest)
 		return
 	}
 	name := strings.TrimSpace(r.FormValue("name"))
@@ -846,12 +846,12 @@ func (s *Server) handleLeagueCreate(w http.ResponseWriter, r *http.Request) {
 	setsPerMatch := parseSetsPerMatch(r.FormValue("sets_per_match"))
 	startDate, err := parseLeagueDate(r.FormValue("start_date"))
 	if err != nil {
-		http.Error(w, "nieprawidlowa data startu", http.StatusBadRequest)
+		http.Error(w, "nieprawidłowa data startu", http.StatusBadRequest)
 		return
 	}
 	endDate, err := parseOptionalLeagueDate(r.FormValue("end_date"))
 	if err != nil {
-		http.Error(w, "nieprawidlowa data konca", http.StatusBadRequest)
+		http.Error(w, "nieprawidłowa data końca", http.StatusBadRequest)
 		return
 	}
 	if name == "" {
@@ -859,7 +859,7 @@ func (s *Server) handleLeagueCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if endDate != nil && endDate.Before(startDate) {
-		http.Error(w, "data konca musi byc po dacie startu", http.StatusBadRequest)
+		http.Error(w, "data końca musi być po dacie startu", http.StatusBadRequest)
 		return
 	}
 
@@ -984,7 +984,7 @@ func (s *Server) handlePlayerSearch(w http.ResponseWriter, r *http.Request) {
 	}
 	currentUser := s.currentUser(r)
 	if !isLeagueAdmin(league, currentUser.ID) {
-		http.Error(w, "brak uprawnien", http.StatusForbidden)
+		http.Error(w, "brak uprawnień", http.StatusForbidden)
 		return
 	}
 	query := strings.TrimSpace(r.URL.Query().Get("q"))
@@ -1003,11 +1003,11 @@ func (s *Server) handlePlayerAdd(w http.ResponseWriter, r *http.Request) {
 	}
 	currentUser := s.currentUser(r)
 	if !isLeagueAdmin(league, currentUser.ID) {
-		http.Error(w, "brak uprawnien", http.StatusForbidden)
+		http.Error(w, "brak uprawnień", http.StatusForbidden)
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "nieprawidlowe dane", http.StatusBadRequest)
+		http.Error(w, "nieprawidłowe dane", http.StatusBadRequest)
 		return
 	}
 	userID := r.FormValue("user_id")
@@ -1041,11 +1041,11 @@ func (s *Server) handleLeagueAdminAdd(w http.ResponseWriter, r *http.Request) {
 	}
 	currentUser := s.currentUser(r)
 	if !isLeagueAdmin(league, currentUser.ID) {
-		http.Error(w, "brak uprawnien", http.StatusForbidden)
+		http.Error(w, "brak uprawnień", http.StatusForbidden)
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "nieprawidlowe dane", http.StatusBadRequest)
+		http.Error(w, "nieprawidłowe dane", http.StatusBadRequest)
 		return
 	}
 	userID := r.FormValue("user_id")
@@ -1055,7 +1055,7 @@ func (s *Server) handleLeagueAdminAdd(w http.ResponseWriter, r *http.Request) {
 	}
 	role := model.LeagueAdminRole(strings.TrimSpace(r.FormValue("role")))
 	if role != model.LeagueAdminPlayer && role != model.LeagueAdminModerator {
-		http.Error(w, "nieprawidlowa rola", http.StatusBadRequest)
+		http.Error(w, "nieprawidłowa rola", http.StatusBadRequest)
 		return
 	}
 	if err := s.store.AddAdminToLeague(league.ID, userID, role); err != nil {
@@ -1075,20 +1075,20 @@ func (s *Server) handleLeagueAdminRoleUpdate(w http.ResponseWriter, r *http.Requ
 	}
 	currentUser := s.currentUser(r)
 	if !isLeagueAdmin(league, currentUser.ID) {
-		http.Error(w, "brak uprawnien", http.StatusForbidden)
+		http.Error(w, "brak uprawnień", http.StatusForbidden)
 		return
 	}
 	if adminID == league.OwnerID {
-		http.Error(w, "nie mozna zmienic roli wlasciciela", http.StatusBadRequest)
+		http.Error(w, "nie można zmienić roli właściciela", http.StatusBadRequest)
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "nieprawidlowe dane", http.StatusBadRequest)
+		http.Error(w, "nieprawidłowe dane", http.StatusBadRequest)
 		return
 	}
 	role := model.LeagueAdminRole(strings.TrimSpace(r.FormValue("role")))
 	if role != model.LeagueAdminPlayer && role != model.LeagueAdminModerator {
-		http.Error(w, "nieprawidlowa rola", http.StatusBadRequest)
+		http.Error(w, "nieprawidłowa rola", http.StatusBadRequest)
 		return
 	}
 	if err := s.store.UpdateAdminRole(league.ID, adminID, role); err != nil {
@@ -1108,11 +1108,11 @@ func (s *Server) handleLeagueAdminRemove(w http.ResponseWriter, r *http.Request)
 	}
 	currentUser := s.currentUser(r)
 	if !isLeagueAdmin(league, currentUser.ID) {
-		http.Error(w, "brak uprawnien", http.StatusForbidden)
+		http.Error(w, "brak uprawnień", http.StatusForbidden)
 		return
 	}
 	if adminID == league.OwnerID {
-		http.Error(w, "nie mozna usunac wlasciciela", http.StatusBadRequest)
+		http.Error(w, "nie można usunąć właściciela", http.StatusBadRequest)
 		return
 	}
 	if err := s.store.RemoveAdminFromLeague(league.ID, adminID); err != nil {
@@ -1131,7 +1131,7 @@ func (s *Server) handleLeagueEnd(w http.ResponseWriter, r *http.Request) {
 	}
 	currentUser := s.currentUser(r)
 	if !isLeagueAdmin(league, currentUser.ID) {
-		http.Error(w, "brak uprawnien", http.StatusForbidden)
+		http.Error(w, "brak uprawnień", http.StatusForbidden)
 		return
 	}
 	league.Status = model.LeagueStatusFinished
@@ -1150,22 +1150,22 @@ func (s *Server) handleMatchCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	currentUser := s.currentUser(r)
 	if !isLeagueAdmin(league, currentUser.ID) && !isLeaguePlayer(league, currentUser.ID) {
-		http.Error(w, "brak uprawnien", http.StatusForbidden)
+		http.Error(w, "brak uprawnień", http.StatusForbidden)
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "nieprawidlowe dane", http.StatusBadRequest)
+		http.Error(w, "nieprawidłowe dane", http.StatusBadRequest)
 		return
 	}
 	playerA := r.FormValue("player_a")
 	playerB := r.FormValue("player_b")
 	if playerA == "" || playerB == "" || playerA == playerB {
-		http.Error(w, "wybierz dwoch roznych graczy", http.StatusBadRequest)
+		http.Error(w, "wybierz dwóch różnych graczy", http.StatusBadRequest)
 		return
 	}
 	sets := parseSets(r, league.SetsPerMatch)
 	if len(sets) == 0 {
-		http.Error(w, "uzupelnij wynik", http.StatusBadRequest)
+		http.Error(w, "uzupełnij wynik", http.StatusBadRequest)
 		return
 	}
 
@@ -1204,7 +1204,7 @@ func (s *Server) handleMatchConfirm(w http.ResponseWriter, r *http.Request) {
 	}
 	currentUser := s.currentUser(r)
 	if match.ReportedBy == currentUser.ID {
-		http.Error(w, "nie mozesz potwierdzic wlasnego wyniku", http.StatusForbidden)
+		http.Error(w, "nie możesz potwierdzić własnego wyniku", http.StatusForbidden)
 		return
 	}
 	match.Status = model.MatchConfirmed
@@ -1233,7 +1233,7 @@ func (s *Server) handleMatchReject(w http.ResponseWriter, r *http.Request) {
 	}
 	currentUser := s.currentUser(r)
 	if match.ReportedBy == currentUser.ID {
-		http.Error(w, "nie mozesz odrzucic wlasnego wyniku", http.StatusForbidden)
+		http.Error(w, "nie możesz odrzucić własnego wyniku", http.StatusForbidden)
 		return
 	}
 	match.Status = model.MatchRejected

@@ -2,7 +2,7 @@
 <section class="mx-auto max-w-md">
   <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
     <h1 class="text-2xl font-semibold">Rejestracja</h1>
-    <p class="mt-1 text-sm text-slate-500">Stworz konto, aby dodawac wyniki.</p>
+    <p class="mt-1 text-sm text-slate-500">Stwórz konto, aby dodawać wyniki.</p>
     {{ if .Error }}
       <div class="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
         {{ .Error }}
@@ -26,19 +26,19 @@
         <input type="tel" name="phone" class="input input-bordered w-full" placeholder="np. 500 600 700">
       </div>
       <div>
-        <label class="label"><span class="label-text">Haslo</span></label>
+        <label class="label"><span class="label-text">Hasło</span></label>
         <input type="password" name="password" class="input input-bordered w-full" minlength="8" required>
       </div>
       <div>
-        <label class="label"><span class="label-text">Powtorz haslo</span></label>
+        <label class="label"><span class="label-text">Powtórz hasło</span></label>
         <input type="password" name="password_confirm" class="input input-bordered w-full" minlength="8" required>
       </div>
       <input type="hidden" name="recaptcha_token" id="recaptcha-token">
       <button class="btn btn-primary">Zarejestruj</button>
     </form>
     <p class="mt-4 text-sm text-slate-500">
-      Masz juz konto?
-      <a href="/login" class="link link-primary">Zaloguj sie</a>
+      Masz już konto?
+      <a href="/login" class="link link-primary">Zaloguj się</a>
     </p>
   </div>
 </section>

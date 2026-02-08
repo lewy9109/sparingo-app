@@ -8,10 +8,10 @@
   <div class="flex items-center gap-2">
     {{ if .CanConfirm }}
       <form method="post" action="/matches/{{ .Match.ID }}/confirm" hx-post="/matches/{{ .Match.ID }}/confirm" hx-target="#match-{{ .Match.ID }}" hx-swap="outerHTML">
-        <button class="btn btn-xs btn-success">Potwierdz</button>
+        <button class="btn btn-xs btn-success">Potwierdź</button>
       </form>
       <form method="post" action="/matches/{{ .Match.ID }}/reject" hx-post="/matches/{{ .Match.ID }}/reject" hx-target="#match-{{ .Match.ID }}" hx-swap="outerHTML">
-        <button class="btn btn-xs btn-outline btn-error">Odrzuc</button>
+        <button class="btn btn-xs btn-outline btn-error">Odrzuć</button>
       </form>
     {{ else }}
       <span class="badge badge-outline">{{ .StatusText }}</span>

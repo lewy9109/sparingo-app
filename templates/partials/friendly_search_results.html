@@ -1,7 +1,7 @@
 {{ define "friendly_search_results.html" }}
 <div id="friendly-search-results" {{ if .SwapOOB }}hx-swap-oob="true"{{ end }} class="mt-3 grid gap-2">
   {{ if .EmptyQuery }}
-    <div class="text-sm text-slate-500">Wpisz imie lub email, aby wyszukac gracza.</div>
+    <div class="text-sm text-slate-500">Wpisz imię lub email, aby wyszukać gracza.</div>
   {{ else if .Results }}
     {{ range .Results }}
       <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200/80 bg-slate-50 px-4 py-3">
@@ -21,7 +21,7 @@
       </div>
     {{ end }}
   {{ else }}
-    <div class="text-sm text-slate-500">Brak pasujacych graczy.</div>
+    <div class="text-sm text-slate-500">Brak pasujących graczy.</div>
   {{ end }}
 </div>
 {{ end }}

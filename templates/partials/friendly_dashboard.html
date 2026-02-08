@@ -9,7 +9,7 @@
         hx-target="#friendly-dashboard"
         hx-swap="outerHTML"
       >
-        Biezacy miesiac
+        Bieżący miesiąc
       </button>
       <button
         class="btn btn-xs {{ if eq .Period "year" }}btn-primary{{ else }}btn-outline{{ end }}"
@@ -17,7 +17,7 @@
         hx-target="#friendly-dashboard"
         hx-swap="outerHTML"
       >
-        Biezacy rok
+        Bieżący rok
       </button>
       <button
         class="btn btn-xs {{ if eq .Period "custom" }}btn-primary{{ else }}btn-outline{{ end }}"
@@ -25,7 +25,7 @@
         hx-target="#friendly-dashboard"
         hx-swap="outerHTML"
       >
-        Wybierz miesiac
+        Wybierz miesiąc
       </button>
     </div>
   </div>
@@ -45,7 +45,7 @@
           <input type="hidden" name="page" value="1">
           <div class="grid gap-3 sm:grid-cols-2">
             <div>
-              <label class="label"><span class="label-text">Miesiac</span></label>
+              <label class="label"><span class="label-text">Miesiąc</span></label>
               <select name="month" class="select select-bordered w-full">
                 {{ range .MonthOptions }}
                   <option value="{{ .Value }}" {{ if eq .Value $.CustomMonth }}selected{{ end }}>{{ .Label }}</option>
@@ -149,7 +149,7 @@
                   hx-target="#friendly-dashboard"
                   hx-swap="outerHTML"
                 >
-                  Nastepna
+                  Następna
                 </button>
               {{ end }}
             </div>
@@ -157,7 +157,7 @@
         {{ end }}
       {{ else }}
         <div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500">
-          Brak wynikow do wyswietlenia.
+          Brak wyników do wyświetlenia.
         </div>
       {{ end }}
     </div>

@@ -6,7 +6,7 @@
     <p class="mt-2 text-sm text-slate-600">Klub: <span class="font-medium">{{ .League.Location }}</span></p>
     <div class="mt-3 flex flex-wrap items-center gap-2 text-xs uppercase tracking-wide text-slate-400">
       <span class="badge badge-outline">
-        {{ if eq .League.Status "active" }}Aktywna{{ else if eq .League.Status "upcoming" }}Nadchodzaca{{ else }}Zakonczona{{ end }}
+        {{ if eq .League.Status "active" }}Aktywna{{ else if eq .League.Status "upcoming" }}Nadchodząca{{ else }}Zakończona{{ end }}
       </span>
       <span class="badge badge-outline">Start: {{ .League.StartDate.Format "02 Jan 2006" }}</span>
       {{ if .League.EndDate }}
@@ -15,7 +15,7 @@
     </div>
     {{ if and .IsAdmin (ne .League.Status "finished") }}
       <form method="post" action="/leagues/{{ .League.ID }}/end" class="mt-3">
-        <button class="btn btn-xs btn-outline btn-error">Zakoncz lige</button>
+        <button class="btn btn-xs btn-outline btn-error">Zakończ ligę</button>
       </form>
     {{ end }}
   </div>
@@ -43,7 +43,7 @@
   {{ else }}
     <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <h2 class="text-xl font-semibold">Dodaj graczy</h2>
-      <p class="mt-3 text-sm text-slate-500">Tylko administratorzy ligi moga dodawac zawodnikow.</p>
+      <p class="mt-3 text-sm text-slate-500">Tylko administratorzy ligi mogą dodawać zawodników.</p>
     </div>
   {{ end }}
 </section>
@@ -68,19 +68,19 @@
                     <option value="admin-player" {{ if eq .Role "admin-player" }}selected{{ end }}>Moderator-Gracz</option>
                     <option value="moderator" {{ if eq .Role "moderator" }}selected{{ end }}>Moderator</option>
                   </select>
-                  <button class="btn btn-xs btn-outline">Zmien role</button>
+                  <button class="btn btn-xs btn-outline">Zmień rolę</button>
                 </form>
-                <label for="remove-admin-{{ .User.ID }}" class="btn btn-xs btn-outline btn-error">Usun</label>
+                <label for="remove-admin-{{ .User.ID }}" class="btn btn-xs btn-outline btn-error">Usuń</label>
                 <input type="checkbox" id="remove-admin-{{ .User.ID }}" class="modal-toggle">
                 <div class="modal" role="dialog">
                   <div class="modal-box">
-                    <h3 class="text-lg font-semibold">Usun administratora</h3>
+                    <h3 class="text-lg font-semibold">Usuń administratora</h3>
                     <p class="mt-2 text-sm text-slate-500">
-                      Czy na pewno chcesz usunac {{ .User.FullName }} z administratorow ligi?
+                      Czy na pewno chcesz usunąć {{ .User.FullName }} z administratorów ligi?
                     </p>
                     <div class="mt-4 flex flex-wrap gap-2">
                       <form method="post" action="/leagues/{{ $.League.ID }}/admins/{{ .User.ID }}/remove">
-                        <button class="btn btn-error btn-sm">Usun</button>
+                        <button class="btn btn-error btn-sm">Usuń</button>
                       </form>
                       <label for="remove-admin-{{ .User.ID }}" class="btn btn-outline btn-sm">Anuluj</label>
                     </div>
@@ -93,7 +93,7 @@
         </div>
       {{ end }}
     {{ else }}
-      <span class="text-sm text-slate-500">Brak administratorow.</span>
+      <span class="text-sm text-slate-500">Brak administratorów.</span>
     {{ end }}
   </div>
   {{ if .IsAdmin }}
@@ -107,13 +107,13 @@
             {{ end }}
           </select>
           <select name="role" class="select select-bordered">
-            <option value="admin-player">Moderator-Gracz</option>
+            <option value="admin-player">Moderator-gracz</option>
             <option value="moderator">Moderator</option>
           </select>
           <button class="btn btn-primary btn-sm">Dodaj</button>
         </form>
       {{ else }}
-        <div class="text-sm text-slate-500">Wszyscy uzytkownicy sa juz administratorami.</div>
+        <div class="text-sm text-slate-500">Wszyscy użytkownicy są już administratorami.</div>
       {{ end }}
     </div>
   {{ end }}
@@ -180,18 +180,18 @@
             </div>
           {{ end }}
         </div>
-        <button class="btn btn-primary">Zglos wynik</button>
+        <button class="btn btn-primary">Zgłoś wynik</button>
       </form>
     {{ else }}
-      <p class="mt-3 text-sm text-slate-500">Tylko gracze ligi lub administratorzy moga dodawac wyniki.</p>
+      <p class="mt-3 text-sm text-slate-500">Tylko gracze ligi lub administratorzy mogą dodawać wyniki.</p>
     {{ end }}
   </div>
 </section>
 
 <section id="league-matches" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
   <div class="flex items-center justify-between">
-    <h2 class="text-xl font-semibold">Historia meczow</h2>
-    <span class="text-sm text-slate-500">Status: oczekujace i potwierdzone</span>
+    <h2 class="text-xl font-semibold">Historia meczów</h2>
+    <span class="text-sm text-slate-500">Status: oczekujące i potwierdzone</span>
   </div>
   <div id="matches-list" class="mt-4 grid gap-3">
     {{ if .Matches }}
@@ -209,14 +209,14 @@
               <a class="btn btn-xs {{ if eq . $.Page }}btn-primary{{ else }}btn-outline{{ end }}" href="/leagues/{{ $.League.ID }}?page={{ . }}#league-matches">{{ . }}</a>
             {{ end }}
             {{ if .HasNext }}
-              <a class="btn btn-xs btn-outline" href="/leagues/{{ .League.ID }}?page={{ .NextPage }}#league-matches">Nastepna</a>
+              <a class="btn btn-xs btn-outline" href="/leagues/{{ .League.ID }}?page={{ .NextPage }}#league-matches">Następna</a>
             {{ end }}
           </div>
         </div>
       {{ end }}
     {{ else }}
       <div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500">
-        Brak meczow do wyswietlenia.
+        Brak meczów do wyświetlenia.
       </div>
     {{ end }}
   </div>

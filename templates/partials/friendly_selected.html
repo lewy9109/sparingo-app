@@ -12,7 +12,7 @@
       hx-target="#friendly-selected"
       hx-swap="innerHTML"
     >
-      Zmien
+      Zmień
     </button>
     <input type="hidden" name="opponent_id" value="{{ .Selected.ID }}">
   </div>
@@ -27,7 +27,7 @@
   </div>
   {{ if or .SearchInput.SwapOOB .Search.SwapOOB }}
     <div id="friendly-opponent-name" hx-swap-oob="true" class="mt-1 text-base font-semibold text-slate-900">Wybierz przeciwnika</div>
-    <div id="friendly-opponent-hint" hx-swap-oob="true" class="text-xs text-slate-500">Przez wyszukiwarke ponizej</div>
+    <div id="friendly-opponent-hint" hx-swap-oob="true" class="text-xs text-slate-500">Przez wyszukiwarkę poniżej</div>
   {{ end }}
   <div id="friendly-search-panel" hx-swap-oob="true"></div>
 {{ end }}

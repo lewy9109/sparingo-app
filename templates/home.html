@@ -16,8 +16,8 @@
         {{ if .Leagues }}
           <a href="/leagues/{{ (index .Leagues 0).ID }}" class="btn btn-outline btn-sm">Moja liga</a>
         {{ end }}
-        <a href="/leagues/new" class="btn btn-outline btn-sm">Stworz lige</a>
-        <a href="/leagues/search" class="btn btn-outline btn-sm">Wyszukaj lige</a>
+        <a href="/leagues/new" class="btn btn-outline btn-sm">Stwórz ligę</a>
+        <a href="/leagues/search" class="btn btn-outline btn-sm">Wyszukaj ligę</a>
       </div>
     </details>
   </aside>
@@ -25,7 +25,7 @@
   <div class="grid gap-6">
     <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <h1 class="text-2xl font-semibold">Twoje ligi</h1>
-      <p class="mt-1 text-sm text-slate-500">Szybki podglad rankingow i ostatnich wydarzen.</p>
+      <p class="mt-1 text-sm text-slate-500">Szybki podgląd rankingów i ostatnich wydarzeń.</p>
       <div class="mt-6 grid gap-4">
         {{ if .Leagues }}
           {{ range .Leagues }}
@@ -42,11 +42,11 @@
           {{ end }}
         {{ else }}
           <div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500">
-            Obecnie nie biore udzialu w zadnej lidze. Wyszukaj lige i wyslij prosbe o dolaczenie.
+            Obecnie nie biorę udziału w żadnej lidze. Wyszukaj ligę i wyślij prośbę o dołączenie.
           </div>
           <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 class="text-lg font-semibold">Wyszukaj ligi</h2>
-            <p class="mt-1 text-sm text-slate-500">Znajdz lige i popros o dolaczenie.</p>
+            <p class="mt-1 text-sm text-slate-500">Znajdź ligę i poproś o dołączenie.</p>
             <form method="get" action="/leagues/search" class="mt-4 flex flex-wrap gap-2">
               <input
                 type="text"
@@ -69,8 +69,8 @@
 
     <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div class="flex flex-wrap items-center justify-between gap-3">
-        <h2 class="text-xl font-semibold">Twoje mecze</h2>
-        <span class="text-xs text-slate-400">Max 6 wynikow na zakladke</span>
+      <h2 class="text-xl font-semibold">Twoje mecze</h2>
+        <span class="text-xs text-slate-400">Maks. 6 wyników na zakładkę</span>
       </div>
       <div class="mt-4 flex flex-wrap gap-2 border-b border-slate-200 pb-3">
         <button
@@ -93,7 +93,7 @@
           hx-target="#dashboard-tab-content"
           hx-swap="innerHTML"
           hx-on="click: setActiveDashboardTab(this)"
-        >Potwierdz mecze</button>
+        >Potwierdź mecze</button>
       </div>
       <div id="dashboard-tab-content" class="mt-4">
         {{ template "dashboard_tab.html" .DashboardRecent }}
