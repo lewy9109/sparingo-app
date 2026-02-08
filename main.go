@@ -70,7 +70,7 @@ func main() {
 		lambda.Start(adapter.ProxyWithContext)
 	} else {
 		// Jesteśmy lokalnie -> Uruchom zwykły serwer HTTP
-		log.Println("Uruchamianie lokalnie na :8080...")
+		log.Println("Uruchamianie lokalnie na :80...")
 		http.ListenAndServe(":80:wq", r)
 	}
 }

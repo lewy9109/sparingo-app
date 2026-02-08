@@ -12,7 +12,7 @@ make css
 
 go run ./main.go
 
-Aplikacja będzie na http://localhost:8080.
+Aplikacja będzie na http://localhost:80.
 
 Uwaga o Go modules
 
