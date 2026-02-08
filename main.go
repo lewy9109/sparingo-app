@@ -70,7 +70,12 @@ func main() {
 		lambda.Start(adapter.ProxyWithContext)
 	} else {
 		// Jesteśmy lokalnie -> Uruchom zwykły serwer HTTP
-		log.Println("Uruchamianie lokalnie na :80...")
-		log.Fatal(http.ListenAndServe(":80", r))
+		port := strings.TrimSpace(os.Getenv("PORT"))
+		if port == "" {
+			port = "8080"
+		}
+		addr := ":" + port
+		log.Printf("Uruchamianie lokalnie na %s...", addr)
+		log.Fatal(http.ListenAndServe(addr, r))
 	}
 }
