@@ -16,6 +16,6 @@ RUN mkdir -p /data && chown app:app /data
 USER app
 ENV DB_PATH=/data/sqoush.db
 ENV DB_MIGRATIONS_DIR=/app/migrations
-EXPOSE 80
+EXPOSE 8080
 VOLUME ["/data"]
 ENTRYPOINT ["/app/sqoush"]
