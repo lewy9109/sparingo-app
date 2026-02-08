@@ -6,10 +6,22 @@ services:
       - "8080:8080"
     environment:
       - APP=prod
-      - DB_PATH=/data/sqoush.db
-      - DB_MIGRATIONS_DIR=/app/migrations
+      - POSTGRES_DSN=postgres://sqoush:sqoush@db:5432/sqoush?sslmode=disable
+      - POSTGRES_MIGRATIONS_DIR=/app/migrations/postgres
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16
+    container_name: sqoush-db
+    environment:
+      - POSTGRES_USER=sqoush
+      - POSTGRES_PASSWORD=sqoush
+      - POSTGRES_DB=sqoush
+    ports:
+      - "5432:5432"
     volumes:
-      - sqoush-data:/data
+      - sqoush-db:/var/lib/postgresql/data
 
 volumes:
-  sqoush-data:
+  sqoush-db:

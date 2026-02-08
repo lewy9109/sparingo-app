@@ -1,0 +1,18 @@
+{{ define "dashboard_tab.html" }}
+<div class="grid gap-3">
+  {{ if .Items }}
+    {{ range .Items }}
+      {{ template "recent_activity_row.html" . }}
+    {{ end }}
+  {{ else }}
+    <div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500">
+      {{ .EmptyText }}
+    </div>
+  {{ end }}
+</div>
+{{ if .HasMore }}
+  <div class="mt-4 text-right">
+    <a href="{{ .MoreURL }}" class="btn btn-outline btn-sm">Pokaz wiecej</a>
+  </div>
+{{ end }}
+{{ end }}

@@ -21,6 +21,7 @@ type MemoryStore struct {
 	leagues    map[string]model.League
 	matches    map[string]model.Match
 	friendlies map[string]model.FriendlyMatch
+	reports    map[string]model.Report
 }
 
 func NewMemoryStore() *MemoryStore {
@@ -29,6 +30,7 @@ func NewMemoryStore() *MemoryStore {
 		leagues:    make(map[string]model.League),
 		matches:    make(map[string]model.Match),
 		friendlies: make(map[string]model.FriendlyMatch),
+		reports:    make(map[string]model.Report),
 	}
 	if strings.ToLower(strings.TrimSpace(os.Getenv("APP"))) != "prod" {
 		seedData(s)
@@ -317,6 +319,35 @@ func (s *MemoryStore) UpdateFriendlyMatch(match model.FriendlyMatch) error {
 	return nil
 }
 
+func (s *MemoryStore) ListReports() []model.Report {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	reports := make([]model.Report, 0, len(s.reports))
+	for _, r := range s.reports {
+		reports = append(reports, r)
+	}
+	sort.Slice(reports, func(i, j int) bool { return reports[i].CreatedAt.After(reports[j].CreatedAt) })
+	return reports
+}
+
+func (s *MemoryStore) CreateReport(report model.Report) (model.Report, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if report.ID == "" {
+		report.ID = uuid.NewString()
+	}
+	if report.CreatedAt.IsZero() {
+		report.CreatedAt = time.Now()
+	}
+	if report.Status == "" {
+		report.Status = model.ReportOpen
+	}
+	s.reports[report.ID] = report
+	return report, nil
+}
+
 func hashPassword(password string) string {
 	if password == "" {
 		return ""
@@ -334,6 +365,7 @@ func seedData(s *MemoryStore) {
 
 	seedUsers := []model.User{
 		{ID: uuid.NewString(), FirstName: "Krystian", LastName: "Lewandowski", Email: "lewy9109@gmail.com", Skill: model.SkillIntermediate, AvatarURL: "https://i.pravatar.cc/100?img=12"},
+		{ID: uuid.NewString(), FirstName: "Lewy", LastName: "Nowy", Email: "lewy9109+1@gmail.com", Skill: model.SkillBeginner, AvatarURL: "https://i.pravatar.cc/100?img=61"},
 		{ID: uuid.NewString(), FirstName: "Pawel", LastName: "Gora", Email: "pawel.gora@example.com", Skill: model.SkillBeginner, AvatarURL: "https://i.pravatar.cc/100?img=32"},
 		{ID: uuid.NewString(), FirstName: "Jacek", LastName: "Nowak", Email: "jacek.nowak@example.com", Skill: model.SkillBeginner, AvatarURL: "https://i.pravatar.cc/100?img=33"},
 		{ID: uuid.NewString(), FirstName: "Tomek", LastName: "Zielinski", Email: "tomek.zielinski@example.com", Skill: model.SkillBeginner, AvatarURL: "https://i.pravatar.cc/100?img=34"},
@@ -357,12 +389,14 @@ func seedData(s *MemoryStore) {
 	for i := range seedUsers {
 		seedUsers[i].PasswordHash = defaultHash
 		if strings.EqualFold(seedUsers[i].Email, "lewy9109@gmail.com") {
-			seedUsers[i].Role = model.RoleAdmin
+			seedUsers[i].Role = model.RoleSuperAdmin
 		} else {
 			seedUsers[i].Role = model.RoleUser
 		}
 		s.users[seedUsers[i].ID] = seedUsers[i]
 	}
+
+	seedUsersForActivity := filterUsersByEmail(seedUsers, "lewy9109+1@gmail.com")
 
 	leagueDefs := []struct {
 		Name, Description, Location string
@@ -376,8 +410,8 @@ func seedData(s *MemoryStore) {
 
 	leagues := make([]model.League, 0, len(leagueDefs))
 	for i, ln := range leagueDefs {
-		owner := seedUsers[i%len(seedUsers)]
-		playerIDs := pickUserIDs(seedUsers, rng, 10+rng.Intn(6))
+		owner := seedUsersForActivity[i%len(seedUsersForActivity)]
+		playerIDs := pickUserIDs(seedUsersForActivity, rng, 10+rng.Intn(6))
 		startDate := time.Now().AddDate(0, 0, -30+rng.Intn(90))
 		var endDate *time.Time
 		if rng.Intn(4) == 0 {
@@ -427,14 +461,14 @@ func seedData(s *MemoryStore) {
 				status := statuses[rng.Intn(len(statuses))]
 				sets := randomSets(rng, league.SetsPerMatch)
 				match := model.Match{
-					ID:        uuid.NewString(),
-					LeagueID:  league.ID,
-					PlayerAID: lewy.ID,
-					PlayerBID: opponentID,
-					Sets:      sets,
-					Status:    status,
+					ID:         uuid.NewString(),
+					LeagueID:   league.ID,
+					PlayerAID:  lewy.ID,
+					PlayerBID:  opponentID,
+					Sets:       sets,
+					Status:     status,
 					ReportedBy: lewy.ID,
-					CreatedAt: playedAt,
+					CreatedAt:  playedAt,
 				}
 				if status == model.MatchConfirmed || status == model.MatchRejected {
 					match.ConfirmedBy = opponentID
@@ -444,10 +478,10 @@ func seedData(s *MemoryStore) {
 		}
 	}
 
-	seedLeagueMatches(s, leagues, seedUsers, rng, currentYear, 200)
-	seedLeagueMatches(s, leagues, seedUsers, rng, previousYear, 200)
-	seedFriendlyMatches(s, seedUsers, rng, currentYear, 200)
-	seedFriendlyMatches(s, seedUsers, rng, previousYear, 200)
+	seedLeagueMatches(s, leagues, seedUsersForActivity, rng, currentYear, 200)
+	seedLeagueMatches(s, leagues, seedUsersForActivity, rng, previousYear, 200)
+	seedFriendlyMatches(s, seedUsersForActivity, rng, currentYear, 200)
+	seedFriendlyMatches(s, seedUsersForActivity, rng, previousYear, 200)
 }
 
 func seedLeagueMatches(s *MemoryStore, leagues []model.League, users []model.User, rng *rand.Rand, year int, count int) {
@@ -505,6 +539,17 @@ func findUserByEmail(users []model.User, email string) (model.User, bool) {
 		}
 	}
 	return model.User{}, false
+}
+
+func filterUsersByEmail(users []model.User, excludeEmail string) []model.User {
+	filtered := make([]model.User, 0, len(users))
+	for _, u := range users {
+		if strings.EqualFold(u.Email, excludeEmail) {
+			continue
+		}
+		filtered = append(filtered, u)
+	}
+	return filtered
 }
 
 func ensureUserInLeague(s *MemoryStore, league *model.League, userID string) {

@@ -1,84 +1,120 @@
 {{ define "content" }}
-<section class="mb-8 grid gap-6 lg:grid-cols-[2fr,1fr]">
-  <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-    <h1 class="text-2xl font-semibold">Twoje ligi</h1>
-    <p class="mt-1 text-sm text-slate-500">Szybki podglad rankingow i ostatnich wydarzen.</p>
-    <div class="mt-6 grid gap-4">
-      {{ if .Leagues }}
-        {{ range .Leagues }}
-          <a href="/leagues/{{ .ID }}" class="block rounded-xl border border-slate-200/80 p-4 transition hover:border-slate-400">
-            <div class="flex items-center justify-between">
-              <div>
-                <div class="text-lg font-medium">{{ .Name }}</div>
-                <div class="text-sm text-slate-500">{{ .Location }}</div>
-              </div>
-              <span class="text-sm text-slate-400">Zobacz</span>
-            </div>
-            <p class="mt-2 text-sm text-slate-600">{{ .Description }}</p>
-          </a>
+<div class="grid gap-6 lg:grid-cols-[220px,1fr]">
+  <aside class="lg:sticky lg:top-6">
+    <details class="group rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">
+      <summary class="flex cursor-pointer items-center justify-between gap-3 text-sm font-semibold text-slate-700">
+        <span class="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-4 w-4" aria-hidden="true">
+            <path fill="currentColor" d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>
+          </svg>
+          Menu
+        </span>
+        <span class="text-xs text-slate-400">Akcje</span>
+      </summary>
+      <div class="mt-4 grid gap-2">
+        <a href="/friendlies/new" class="btn btn-outline btn-sm">Dodaj mecz towarzyski</a>
+        {{ if .Leagues }}
+          <a href="/leagues/{{ (index .Leagues 0).ID }}" class="btn btn-outline btn-sm">Moja liga</a>
         {{ end }}
-      {{ else }}
-        <div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500">
-          Brak lig. Dodaj pierwsza lige.
-        </div>
-      {{ end }}
-    </div>
-  </div>
-  <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-    <h2 class="text-lg font-semibold">Szybkie akcje</h2>
-    <div class="mt-4 grid gap-3">
-      <a href="/leagues/new" class="btn btn-outline btn-primary">Stworz lige</a>
-      <a href="/leagues/search" class="btn btn-outline">Wyszukaj ligi</a>
-      <a href="/friendlies/new" target="_blank" rel="noopener" class="btn btn-outline">Dodaj mecz towarzyski</a>
-      <div class="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
-        Uzywasz konta: <span class="font-medium">{{ .CurrentUser.FullName }}</span>
+        <a href="/leagues/new" class="btn btn-outline btn-sm">Stworz lige</a>
+        <a href="/leagues/search" class="btn btn-outline btn-sm">Wyszukaj lige</a>
       </div>
-    </div>
-  </div>
-</section>
+    </details>
+  </aside>
 
-<section class="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-  <h2 class="text-xl font-semibold">Ostatnio rozgrywane mecze</h2>
-  <div class="mt-4 grid gap-3">
-    {{ if .RecentActivity }}
-      {{ range .RecentActivity }}
-        {{ template "recent_activity_row.html" . }}
-      {{ end }}
-    {{ else }}
-      <div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500">
-        Brak wynikow do wyswietlenia.
+  <div class="grid gap-6">
+    <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h1 class="text-2xl font-semibold">Twoje ligi</h1>
+      <p class="mt-1 text-sm text-slate-500">Szybki podglad rankingow i ostatnich wydarzen.</p>
+      <div class="mt-6 grid gap-4">
+        {{ if .Leagues }}
+          {{ range .Leagues }}
+            <a href="/leagues/{{ .ID }}" class="block rounded-xl border border-slate-200/80 p-4 transition hover:border-slate-400">
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="text-lg font-medium">{{ .Name }}</div>
+                  <div class="text-sm text-slate-500">{{ .Location }}</div>
+                </div>
+                <span class="text-sm text-slate-400">Zobacz</span>
+              </div>
+              <p class="mt-2 text-sm text-slate-600">{{ .Description }}</p>
+            </a>
+          {{ end }}
+        {{ else }}
+          <div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500">
+            Obecnie nie biore udzialu w zadnej lidze. Wyszukaj lige i wyslij prosbe o dolaczenie.
+          </div>
+          <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 class="text-lg font-semibold">Wyszukaj ligi</h2>
+            <p class="mt-1 text-sm text-slate-500">Znajdz lige i popros o dolaczenie.</p>
+            <form method="get" action="/leagues/search" class="mt-4 flex flex-wrap gap-2">
+              <input
+                type="text"
+                name="q"
+                value="{{ .LeagueSearch.Query }}"
+                class="input input-bordered flex-1 min-w-[220px]"
+                placeholder="Nazwa, opis lub lokalizacja"
+                hx-get="/leagues/search/results"
+                hx-trigger="keyup changed delay:300ms"
+                hx-target="#league-search-results"
+                hx-swap="outerHTML"
+              >
+              <button class="btn btn-primary">Szukaj</button>
+            </form>
+            {{ template "league_search_results.html" .LeagueSearch }}
+          </div>
+        {{ end }}
       </div>
-    {{ end }}
-  </div>
-</section>
+    </section>
 
-<section class="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-  <h2 class="text-xl font-semibold">Niepotwierdzone mecze</h2>
-  <div class="mt-4 grid gap-3">
-    {{ if .RecentPending }}
-      {{ range .RecentPending }}
-        {{ template "recent_activity_row.html" . }}
-      {{ end }}
-    {{ else }}
-      <div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500">
-        Brak wynikow do wyswietlenia.
+    <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h2 class="text-xl font-semibold">Twoje mecze</h2>
+        <span class="text-xs text-slate-400">Max 6 wynikow na zakladke</span>
       </div>
-    {{ end }}
-  </div>
-</section>
-
-<section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-  <h2 class="text-xl font-semibold">Moje mecze towarzyskie</h2>
-  <div class="mt-4 grid gap-3">
-    {{ if .RecentFriendlyMatches }}
-      {{ range .RecentFriendlyMatches }}
-        {{ template "friendly_match_row_static.html" . }}
-      {{ end }}
-    {{ else }}
-      <div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500">
-        Brak wynikow do wyswietlenia.
+      <div class="mt-4 flex flex-wrap gap-2 border-b border-slate-200 pb-3">
+        <button
+          class="btn btn-sm btn-primary"
+          hx-get="/dashboard/tab/recent"
+          hx-target="#dashboard-tab-content"
+          hx-swap="innerHTML"
+          hx-on="click: setActiveDashboardTab(this)"
+        >Ostatnio rozgrywane mecze</button>
+        <button
+          class="btn btn-sm btn-outline"
+          hx-get="/dashboard/tab/friendly"
+          hx-target="#dashboard-tab-content"
+          hx-swap="innerHTML"
+          hx-on="click: setActiveDashboardTab(this)"
+        >Mecze towarzyskie</button>
+        <button
+          class="btn btn-sm btn-outline"
+          hx-get="/dashboard/tab/pending"
+          hx-target="#dashboard-tab-content"
+          hx-swap="innerHTML"
+          hx-on="click: setActiveDashboardTab(this)"
+        >Potwierdz mecze</button>
       </div>
-    {{ end }}
+      <div id="dashboard-tab-content" class="mt-4">
+        {{ template "dashboard_tab.html" .DashboardRecent }}
+      </div>
+    </section>
   </div>
-</section>
+</div>
+<script>
+  (function () {
+    window.setActiveDashboardTab = function (btn) {
+      if (!btn) return;
+      var container = btn.parentElement;
+      if (!container) return;
+      var buttons = container.querySelectorAll("button");
+      buttons.forEach(function (item) {
+        item.classList.remove("btn-primary");
+        item.classList.add("btn-outline");
+      });
+      btn.classList.add("btn-primary");
+      btn.classList.remove("btn-outline");
+    };
+  })();
+</script>
 {{ end }}

@@ -37,14 +37,6 @@ func main() {
 			log.Fatalf("postgres store: %v", err)
 		}
 		appStore = pgStore
-	} else if dbPath := strings.TrimSpace(os.Getenv("DB_PATH")); dbPath != "" {
-		sqliteStore, err := store.NewSQLiteStore(dbPath, store.SQLiteOptions{
-			MigrationsDir: os.Getenv("DB_MIGRATIONS_DIR"),
-		})
-		if err != nil {
-			log.Fatalf("sqlite store: %v", err)
-		}
-		appStore = sqliteStore
 	} else {
 		appStore = store.NewMemoryStore()
 	}
@@ -64,12 +56,10 @@ func main() {
 
 	// 2. Wykrywanie środowiska (AWS Lambda vs Localhost)
 	if os.Getenv("AWS_LAMBDA_FUNCTION_NAME") != "" {
-		// Jesteśmy na AWS -> Uruchom adapter Lambdy
 		log.Println("Uruchamianie w trybie Lambda...")
 		adapter := httpadapter.New(r)
 		lambda.Start(adapter.ProxyWithContext)
 	} else {
-		// Jesteśmy lokalnie -> Uruchom zwykły serwer HTTP
 		port := strings.TrimSpace(os.Getenv("PORT"))
 		if port == "" {
 			port = "8080"

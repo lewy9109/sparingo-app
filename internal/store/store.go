@@ -26,4 +26,6 @@ type Store interface {
 	GetFriendlyMatch(id string) (model.FriendlyMatch, bool)
 	CreateFriendlyMatch(match model.FriendlyMatch) (model.FriendlyMatch, error)
 	UpdateFriendlyMatch(match model.FriendlyMatch) error
+	ListReports() []model.Report
+	CreateReport(report model.Report) (model.Report, error)
 }

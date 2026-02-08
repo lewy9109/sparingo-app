@@ -12,10 +12,7 @@ COPY --from=build /app/sqoush /app/sqoush
 COPY --from=build /app/templates /app/templates
 COPY --from=build /app/static /app/static
 COPY --from=build /app/migrations /app/migrations
-RUN mkdir -p /data && chown app:app /data
 USER app
-ENV DB_PATH=/data/sqoush.db
-ENV DB_MIGRATIONS_DIR=/app/migrations
+ENV POSTGRES_MIGRATIONS_DIR=/app/migrations/postgres
 EXPOSE 8080
-VOLUME ["/data"]
 ENTRYPOINT ["/app/sqoush"]

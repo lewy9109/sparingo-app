@@ -360,6 +360,43 @@ func (s *PostgresStore) UpdateFriendlyMatch(match model.FriendlyMatch) error {
 	return nil
 }
 
+func (s *PostgresStore) ListReports() []model.Report {
+	rows, err := s.db.Query(`SELECT id, user_id, type, title, description, status, created_at FROM reports ORDER BY created_at DESC`)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+
+	reports := []model.Report{}
+	for rows.Next() {
+		var r model.Report
+		if err := rows.Scan(&r.ID, &r.UserID, &r.Type, &r.Title, &r.Description, &r.Status, &r.CreatedAt); err != nil {
+			continue
+		}
+		reports = append(reports, r)
+	}
+	return reports
+}
+
+func (s *PostgresStore) CreateReport(report model.Report) (model.Report, error) {
+	if report.ID == "" {
+		report.ID = uuid.NewString()
+	}
+	if report.CreatedAt.IsZero() {
+		report.CreatedAt = time.Now()
+	}
+	if report.Status == "" {
+		report.Status = model.ReportOpen
+	}
+	_, err := s.db.Exec(`INSERT INTO reports (id, user_id, type, title, description, status, created_at) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+		report.ID, report.UserID, string(report.Type), report.Title, report.Description, string(report.Status), timeValuePtr(report.CreatedAt),
+	)
+	if err != nil {
+		return model.Report{}, err
+	}
+	return report, nil
+}
+
 func scanLeagueRow(scanner interface{ Scan(dest ...any) error }) (model.League, error) {
 	var league model.League
 	var adminJSON, playerJSON []byte

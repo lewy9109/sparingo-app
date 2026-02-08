@@ -15,8 +15,9 @@ const (
 	SkillIntermediate SkillLevel = "intermediate"
 	SkillPro          SkillLevel = "pro"
 
-	RoleAdmin UserRole = "admin"
-	RoleUser  UserRole = "user"
+	RoleAdmin      UserRole = "admin"
+	RoleUser       UserRole = "user"
+	RoleSuperAdmin UserRole = "super_admin"
 
 	MatchScheduled MatchStatus = "scheduled"
 	MatchPending   MatchStatus = "pending"
@@ -25,15 +26,15 @@ const (
 )
 
 type User struct {
-	ID        string
-	FirstName string
-	LastName  string
-	Phone     string
-	Email     string
+	ID           string
+	FirstName    string
+	LastName     string
+	Phone        string
+	Email        string
 	PasswordHash string
-	Role      UserRole
-	Skill     SkillLevel
-	AvatarURL string
+	Role         UserRole
+	Skill        SkillLevel
+	AvatarURL    string
 }
 
 func (u User) FullName() string {
@@ -49,18 +50,18 @@ func (u User) FullName() string {
 }
 
 type League struct {
-	ID          string
-	Name        string
-	Description string
-	Location    string
-	OwnerID     string
-	AdminRoles  map[string]LeagueAdminRole
-	PlayerIDs   []string
+	ID           string
+	Name         string
+	Description  string
+	Location     string
+	OwnerID      string
+	AdminRoles   map[string]LeagueAdminRole
+	PlayerIDs    []string
 	SetsPerMatch int
-	StartDate   time.Time
-	EndDate     *time.Time
-	Status      LeagueStatus
-	CreatedAt   time.Time
+	StartDate    time.Time
+	EndDate      *time.Time
+	Status       LeagueStatus
+	CreatedAt    time.Time
 }
 
 type LeagueAdminRole string
@@ -68,12 +69,12 @@ type LeagueAdminRole string
 type LeagueStatus string
 
 const (
-	LeagueAdminPlayer   LeagueAdminRole = "admin-player"
+	LeagueAdminPlayer    LeagueAdminRole = "admin-player"
 	LeagueAdminModerator LeagueAdminRole = "moderator"
 
-	LeagueStatusActive    LeagueStatus = "active"
-	LeagueStatusFinished  LeagueStatus = "finished"
-	LeagueStatusUpcoming  LeagueStatus = "upcoming"
+	LeagueStatusActive   LeagueStatus = "active"
+	LeagueStatusFinished LeagueStatus = "finished"
+	LeagueStatusUpcoming LeagueStatus = "upcoming"
 )
 
 type SetScore struct {
@@ -94,13 +95,34 @@ type Match struct {
 }
 
 type FriendlyMatch struct {
-	ID        string
-	PlayerAID string
-	PlayerBID string
-	Sets      []SetScore
-	Status    MatchStatus
-	ReportedBy string
+	ID          string
+	PlayerAID   string
+	PlayerBID   string
+	Sets        []SetScore
+	Status      MatchStatus
+	ReportedBy  string
 	ConfirmedBy string
-	PlayedAt  time.Time
-	CreatedAt time.Time
+	PlayedAt    time.Time
+	CreatedAt   time.Time
+}
+
+type ReportType string
+type ReportStatus string
+
+const (
+	ReportBug     ReportType = "bug"
+	ReportFeature ReportType = "feature"
+
+	ReportOpen   ReportStatus = "open"
+	ReportClosed ReportStatus = "closed"
+)
+
+type Report struct {
+	ID          string
+	UserID      string
+	Type        ReportType
+	Title       string
+	Description string
+	Status      ReportStatus
+	CreatedAt   time.Time
 }

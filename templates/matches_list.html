@@ -1,0 +1,37 @@
+{{ define "content" }}
+<section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+  <h1 class="text-2xl font-semibold">{{ .Title }}</h1>
+  <p class="mt-1 text-sm text-slate-500">Pelny podglad z paginacja.</p>
+  <div class="mt-4 grid gap-3">
+    {{ if .Items }}
+      {{ range .Items }}
+        {{ template "recent_activity_row.html" . }}
+      {{ end }}
+    {{ else }}
+      <div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500">
+        Brak wynikow do wyswietlenia.
+      </div>
+    {{ end }}
+  </div>
+
+  {{ if gt .TotalPages 1 }}
+    <div class="mt-6 flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        {{ if .HasPrev }}
+          <a class="btn btn-xs btn-outline" href="{{ .BasePath }}?page={{ .PrevPage }}">Poprzednia</a>
+        {{ end }}
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        {{ range .Pages }}
+          <a class="btn btn-xs {{ if eq . $.Page }}btn-primary{{ else }}btn-outline{{ end }}" href="{{ $.BasePath }}?page={{ . }}">{{ . }}</a>
+        {{ end }}
+      </div>
+      <div class="flex items-center gap-2">
+        {{ if .HasNext }}
+          <a class="btn btn-xs btn-outline" href="{{ .BasePath }}?page={{ .NextPage }}">Nastepna</a>
+        {{ end }}
+      </div>
+    </div>
+  {{ end }}
+</section>
+{{ end }}

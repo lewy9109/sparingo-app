@@ -33,6 +33,12 @@ func (s *Server) Routes() http.Handler {
 
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
 	r.Get("/", s.handleHome)
+	r.Post("/dev/switch-user", s.handleDevSwitchUser)
+	r.Get("/dashboard/tab/recent", s.handleDashboardRecentTab)
+	r.Get("/dashboard/tab/pending", s.handleDashboardPendingTab)
+	r.Get("/dashboard/tab/friendly", s.handleDashboardFriendlyTab)
+	r.Get("/matches/recent", s.handleMatchesRecent)
+	r.Get("/matches/pending", s.handleMatchesPending)
 	r.Get("/login", s.handleLogin)
 	r.Post("/login", s.handleLoginPost)
 	r.Get("/register", s.handleRegister)
@@ -45,9 +51,13 @@ func (s *Server) Routes() http.Handler {
 	r.Post("/friendlies", s.handleFriendlyCreate)
 	r.Post("/friendlies/{matchID}/confirm", s.handleFriendlyConfirm)
 	r.Post("/friendlies/{matchID}/reject", s.handleFriendlyReject)
+	r.Get("/reports/new", s.handleReportNew)
+	r.Post("/reports", s.handleReportCreate)
+	r.Get("/reports", s.handleReportsList)
 	r.Get("/leagues/new", s.handleLeagueNew)
 	r.Get("/leagues/search", s.handleLeagueSearch)
 	r.Get("/leagues/search/results", s.handleLeagueSearchResults)
+	r.Post("/leagues/{leagueID}/join", s.handleLeagueJoin)
 	r.Post("/leagues", s.handleLeagueCreate)
 	r.Get("/leagues/{leagueID}", s.handleLeagueShow)
 	r.Get("/leagues/{leagueID}/players/search", s.handlePlayerSearch)
@@ -67,125 +77,173 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	currentUser := s.currentUser(r)
 	users := s.store.ListUsers()
 	leagues := s.leaguesForUser(currentUser.ID)
-
-	recentActivity := []RecentActivityItem{}
-	recentPending := []RecentActivityItem{}
-	type activityEntry struct {
-		PlayedAt time.Time
-		Item     RecentActivityItem
+	notice := strings.TrimSpace(r.URL.Query().Get("notice"))
+	flash := ""
+	switch notice {
+	case "friendly_added":
+		flash = "Dodano mecz towarzyski."
+	case "report_added":
+		flash = "Dziekujemy! Zgloszenie zostalo zapisane."
 	}
-	activityEntries := []activityEntry{}
-	recentFriendlies := []FriendlyMatchView{}
-
-	pendingEntries := []activityEntry{}
-	for _, league := range leagues {
-		matches := s.store.ListMatches(league.ID)
-		for _, match := range matches {
-			if match.PlayerAID != currentUser.ID && match.PlayerBID != currentUser.ID {
-				continue
-			}
-			view := s.matchView(match, currentUser)
-			item := RecentActivityItem{
-				Kind:          "league",
-				MatchID:       match.ID,
-				PlayerA:       view.PlayerA,
-				PlayerB:       view.PlayerB,
-				ScoreLine:     view.ScoreLine,
-				StatusText:    view.StatusText,
-				CanConfirm:    view.CanConfirm,
-				CanReject:     view.CanReject,
-				PlayedAtLabel: match.CreatedAt.Format("02 Jan 2006 15:04"),
-				LeagueName:    league.Name,
-			}
-			if match.Status == model.MatchConfirmed {
-				activityEntries = append(activityEntries, activityEntry{
-					PlayedAt: match.CreatedAt,
-					Item:     item,
-				})
-			} else if match.Status == model.MatchPending {
-				pendingEntries = append(pendingEntries, activityEntry{
-					PlayedAt: match.CreatedAt,
-					Item:     item,
-				})
-			}
-		}
-	}
-
-	for _, match := range s.store.ListFriendlyMatches() {
-		if match.PlayerAID != currentUser.ID && match.PlayerBID != currentUser.ID {
-			continue
-		}
-		view := s.friendlyMatchView(match, currentUser)
-		item := RecentActivityItem{
-			Kind:          "friendly",
-			MatchID:       match.ID,
-			PlayerA:       view.PlayerA,
-			PlayerB:       view.PlayerB,
-			ScoreLine:     view.ScoreLine,
-			StatusText:    view.StatusText,
-			CanConfirm:    view.CanConfirm,
-			CanReject:     view.CanReject,
-			PlayedAtLabel: view.PlayedAtLabel,
-		}
-		if match.Status == model.MatchConfirmed {
-			activityEntries = append(activityEntries, activityEntry{
-				PlayedAt: match.PlayedAt,
-				Item:     item,
-			})
-		} else if match.Status == model.MatchPending {
-			pendingEntries = append(pendingEntries, activityEntry{
-				PlayedAt: match.PlayedAt,
-				Item:     item,
-			})
-		}
-		if match.Status == model.MatchConfirmed {
-			recentFriendlies = append(recentFriendlies, view)
-			if len(recentFriendlies) >= 10 {
-				break
-			}
-		}
-	}
-
-	sort.Slice(activityEntries, func(i, j int) bool {
-		return activityEntries[i].PlayedAt.After(activityEntries[j].PlayedAt)
+	recentEntries := s.leagueActivityEntries(currentUser, map[model.MatchStatus]bool{
+		model.MatchPending:   true,
+		model.MatchConfirmed: true,
 	})
-	for _, entry := range activityEntries {
-		recentActivity = append(recentActivity, entry.Item)
-		if len(recentActivity) >= 10 {
-			break
-		}
-	}
+	sort.Slice(recentEntries, func(i, j int) bool {
+		return recentEntries[i].When.After(recentEntries[j].When)
+	})
+
+	pendingEntries := s.leagueActivityEntries(currentUser, map[model.MatchStatus]bool{
+		model.MatchPending: true,
+	})
 	sort.Slice(pendingEntries, func(i, j int) bool {
-		return pendingEntries[i].PlayedAt.After(pendingEntries[j].PlayedAt)
-	})
-	for _, entry := range pendingEntries {
-		recentPending = append(recentPending, entry.Item)
-		if len(recentPending) >= 10 {
-			break
+		if pendingEntries[i].Item.CanConfirm != pendingEntries[j].Item.CanConfirm {
+			return pendingEntries[i].Item.CanConfirm
 		}
-	}
+		return pendingEntries[i].When.After(pendingEntries[j].When)
+	})
+
+	friendlyEntries := s.friendlyActivityEntries(currentUser, map[model.MatchStatus]bool{
+		model.MatchPending:   true,
+		model.MatchConfirmed: true,
+	})
+	sort.Slice(friendlyEntries, func(i, j int) bool {
+		return friendlyEntries[i].When.After(friendlyEntries[j].When)
+	})
 
 	view := HomeView{
 		BaseView: BaseView{
-			Title:       "Dashboard",
-			CurrentUser: currentUser,
-			Users:       users,
+			Title:           "Dashboard",
+			CurrentUser:     currentUser,
+			Users:           users,
 			IsAuthenticated: currentUser.ID != "",
+			IsDev:           isDevMode(),
+			FlashSuccess:    flash,
 		},
-		Leagues:               leagues,
-		RecentActivity:        recentActivity,
-		RecentPending:         recentPending,
-		RecentFriendlyMatches: recentFriendlies,
+		Leagues:           leagues,
+		DashboardRecent:   buildDashboardTabView(recentEntries, 10, 6, "/matches/recent", "Brak wynikow do wyswietlenia."),
+		DashboardPending:  buildDashboardTabView(pendingEntries, 0, 6, "/matches/pending", "Brak meczow do potwierdzenia."),
+		DashboardFriendly: buildDashboardTabView(friendlyEntries, 0, 6, "/friendlies/dashboard", "Brak wynikow do wyswietlenia."),
+		LeagueSearch:      s.leagueSearchView("", currentUser),
 	}
 	if err := s.templates.Render(w, "home.html", view); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
+func (s *Server) handleDashboardRecentTab(w http.ResponseWriter, r *http.Request) {
+	currentUser := s.currentUser(r)
+	entries := s.leagueActivityEntries(currentUser, map[model.MatchStatus]bool{
+		model.MatchPending:   true,
+		model.MatchConfirmed: true,
+	})
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].When.After(entries[j].When)
+	})
+	view := buildDashboardTabView(entries, 10, 6, "/matches/recent", "Brak wynikow do wyswietlenia.")
+	if err := s.templates.RenderPartial(w, "dashboard_tab.html", view); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (s *Server) handleDashboardPendingTab(w http.ResponseWriter, r *http.Request) {
+	currentUser := s.currentUser(r)
+	entries := s.leagueActivityEntries(currentUser, map[model.MatchStatus]bool{
+		model.MatchPending: true,
+	})
+	sort.Slice(entries, func(i, j int) bool {
+		if entries[i].Item.CanConfirm != entries[j].Item.CanConfirm {
+			return entries[i].Item.CanConfirm
+		}
+		return entries[i].When.After(entries[j].When)
+	})
+	view := buildDashboardTabView(entries, 0, 6, "/matches/pending", "Brak meczow do potwierdzenia.")
+	if err := s.templates.RenderPartial(w, "dashboard_tab.html", view); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (s *Server) handleDashboardFriendlyTab(w http.ResponseWriter, r *http.Request) {
+	currentUser := s.currentUser(r)
+	entries := s.friendlyActivityEntries(currentUser, map[model.MatchStatus]bool{
+		model.MatchPending:   true,
+		model.MatchConfirmed: true,
+	})
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].When.After(entries[j].When)
+	})
+	view := buildDashboardTabView(entries, 0, 6, "/friendlies/dashboard", "Brak wynikow do wyswietlenia.")
+	if err := s.templates.RenderPartial(w, "dashboard_tab.html", view); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (s *Server) handleMatchesRecent(w http.ResponseWriter, r *http.Request) {
+	currentUser := s.currentUser(r)
+	entries := s.leagueActivityEntries(currentUser, map[model.MatchStatus]bool{
+		model.MatchPending:   true,
+		model.MatchConfirmed: true,
+	})
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].When.After(entries[j].When)
+	})
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	view := s.buildMatchesListView(entries, page, 10, "/matches/recent", currentUser, "Ostatnio rozgrywane mecze")
+	if err := s.templates.Render(w, "matches_list.html", view); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (s *Server) handleMatchesPending(w http.ResponseWriter, r *http.Request) {
+	currentUser := s.currentUser(r)
+	entries := s.leagueActivityEntries(currentUser, map[model.MatchStatus]bool{
+		model.MatchPending: true,
+	})
+	sort.Slice(entries, func(i, j int) bool {
+		if entries[i].Item.CanConfirm != entries[j].Item.CanConfirm {
+			return entries[i].Item.CanConfirm
+		}
+		return entries[i].When.After(entries[j].When)
+	})
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	view := s.buildMatchesListView(entries, page, 10, "/matches/pending", currentUser, "Potwierdz mecze")
+	if err := s.templates.Render(w, "matches_list.html", view); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (s *Server) handleDevSwitchUser(w http.ResponseWriter, r *http.Request) {
+	if !isDevMode() {
+		http.NotFound(w, r)
+		return
+	}
+	currentUser := s.currentUser(r)
+	if !isSuperAdmin(currentUser) {
+		http.Error(w, "brak uprawnien", http.StatusForbidden)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "nieprawidlowe dane", http.StatusBadRequest)
+		return
+	}
+	userID := strings.TrimSpace(r.FormValue("user_id"))
+	if userID == "" {
+		http.Error(w, "brak uzytkownika", http.StatusBadRequest)
+		return
+	}
+	if _, ok := s.store.GetUser(userID); !ok {
+		http.Error(w, "nie znaleziono uzytkownika", http.StatusNotFound)
+		return
+	}
+	setAuthCookie(w, userID)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	view := AuthView{
 		BaseView: BaseView{
 			Title: "Logowanie",
+			IsDev: isDevMode(),
 		},
 	}
 	if err := s.templates.Render(w, "login.html", view); err != nil {
@@ -203,7 +261,7 @@ func (s *Server) handleLoginPost(w http.ResponseWriter, r *http.Request) {
 	user, ok := s.store.GetUserByEmail(email)
 	if !ok || !checkPassword(user.PasswordHash, password) {
 		view := AuthView{
-			BaseView: BaseView{Title: "Logowanie"},
+			BaseView: BaseView{Title: "Logowanie", IsDev: isDevMode()},
 			Error:    "Nieprawidlowy email lub haslo",
 		}
 		if err := s.templates.Render(w, "login.html", view); err != nil {
@@ -220,6 +278,7 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 	view := AuthView{
 		BaseView: BaseView{
 			Title: "Rejestracja",
+			IsDev: isDevMode(),
 		},
 		RecaptchaSiteKey: cfg.SiteKey,
 	}
@@ -242,8 +301,8 @@ func (s *Server) handleRegisterPost(w http.ResponseWriter, r *http.Request) {
 	confirmPassword := r.FormValue("password_confirm")
 	if firstName == "" || lastName == "" || email == "" || password == "" {
 		view := AuthView{
-			BaseView: BaseView{Title: "Rejestracja"},
-			Error:    "Wypelnij wszystkie pola",
+			BaseView:         BaseView{Title: "Rejestracja", IsDev: isDevMode()},
+			Error:            "Wypelnij wszystkie pola",
 			RecaptchaSiteKey: cfg.SiteKey,
 		}
 		if err := s.templates.Render(w, "register.html", view); err != nil {
@@ -253,8 +312,8 @@ func (s *Server) handleRegisterPost(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(password) < 8 {
 		view := AuthView{
-			BaseView: BaseView{Title: "Rejestracja"},
-			Error:    "Haslo musi miec min. 8 znakow",
+			BaseView:         BaseView{Title: "Rejestracja", IsDev: isDevMode()},
+			Error:            "Haslo musi miec min. 8 znakow",
 			RecaptchaSiteKey: cfg.SiteKey,
 		}
 		if err := s.templates.Render(w, "register.html", view); err != nil {
@@ -264,8 +323,8 @@ func (s *Server) handleRegisterPost(w http.ResponseWriter, r *http.Request) {
 	}
 	if !containsUppercase(password) {
 		view := AuthView{
-			BaseView: BaseView{Title: "Rejestracja"},
-			Error:    "Haslo musi zawierac jedna duza litere",
+			BaseView:         BaseView{Title: "Rejestracja", IsDev: isDevMode()},
+			Error:            "Haslo musi zawierac jedna duza litere",
 			RecaptchaSiteKey: cfg.SiteKey,
 		}
 		if err := s.templates.Render(w, "register.html", view); err != nil {
@@ -275,8 +334,8 @@ func (s *Server) handleRegisterPost(w http.ResponseWriter, r *http.Request) {
 	}
 	if password != confirmPassword {
 		view := AuthView{
-			BaseView: BaseView{Title: "Rejestracja"},
-			Error:    "Hasla nie sa takie same",
+			BaseView:         BaseView{Title: "Rejestracja", IsDev: isDevMode()},
+			Error:            "Hasla nie sa takie same",
 			RecaptchaSiteKey: cfg.SiteKey,
 		}
 		if err := s.templates.Render(w, "register.html", view); err != nil {
@@ -286,8 +345,8 @@ func (s *Server) handleRegisterPost(w http.ResponseWriter, r *http.Request) {
 	}
 	if !cfg.Enabled {
 		view := AuthView{
-			BaseView: BaseView{Title: "Rejestracja"},
-			Error:    "reCAPTCHA nie jest skonfigurowana",
+			BaseView:         BaseView{Title: "Rejestracja", IsDev: isDevMode()},
+			Error:            "reCAPTCHA nie jest skonfigurowana",
 			RecaptchaSiteKey: cfg.SiteKey,
 		}
 		if err := s.templates.Render(w, "register.html", view); err != nil {
@@ -298,8 +357,8 @@ func (s *Server) handleRegisterPost(w http.ResponseWriter, r *http.Request) {
 	token := strings.TrimSpace(r.FormValue("recaptcha_token"))
 	if token == "" {
 		view := AuthView{
-			BaseView: BaseView{Title: "Rejestracja"},
-			Error:    "Brak tokenu reCAPTCHA",
+			BaseView:         BaseView{Title: "Rejestracja", IsDev: isDevMode()},
+			Error:            "Brak tokenu reCAPTCHA",
 			RecaptchaSiteKey: cfg.SiteKey,
 		}
 		if err := s.templates.Render(w, "register.html", view); err != nil {
@@ -310,8 +369,8 @@ func (s *Server) handleRegisterPost(w http.ResponseWriter, r *http.Request) {
 	ok, err := verifyRecaptchaToken(token, "register", cfg)
 	if err != nil || !ok {
 		view := AuthView{
-			BaseView: BaseView{Title: "Rejestracja"},
-			Error:    "Nieudana weryfikacja reCAPTCHA",
+			BaseView:         BaseView{Title: "Rejestracja", IsDev: isDevMode()},
+			Error:            "Nieudana weryfikacja reCAPTCHA",
 			RecaptchaSiteKey: cfg.SiteKey,
 		}
 		if err := s.templates.Render(w, "register.html", view); err != nil {
@@ -332,7 +391,7 @@ func (s *Server) handleRegisterPost(w http.ResponseWriter, r *http.Request) {
 	created, err := s.store.CreateUser(user)
 	if err != nil {
 		view := AuthView{
-			BaseView: BaseView{Title: "Rejestracja"},
+			BaseView: BaseView{Title: "Rejestracja", IsDev: isDevMode()},
 			Error:    "Nie mozna utworzyc konta: " + err.Error(),
 		}
 		if err := s.templates.Render(w, "register.html", view); err != nil {
@@ -351,6 +410,10 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleFriendlyNew(w http.ResponseWriter, r *http.Request) {
 	currentUser := s.currentUser(r)
+	if currentUser.ID == "" {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
 	view := FriendlyFormView{
 		LeagueUsers: s.store.ListUsers(),
 		Search: FriendlySearchView{
@@ -366,10 +429,11 @@ func (s *Server) handleFriendlyNew(w http.ResponseWriter, r *http.Request) {
 		Form FriendlyFormView
 	}{
 		BaseView: BaseView{
-			Title:       "Nowy mecz towarzyski",
-			CurrentUser: currentUser,
-			Users:       s.store.ListUsers(),
+			Title:           "Nowy mecz towarzyski",
+			CurrentUser:     currentUser,
+			Users:           s.store.ListUsers(),
 			IsAuthenticated: true,
+			IsDev:           isDevMode(),
 		},
 		Form: view,
 	}
@@ -382,7 +446,26 @@ func (s *Server) handleFriendlyDashboard(w http.ResponseWriter, r *http.Request)
 	currentUser := s.currentUser(r)
 	params := friendlyDashboardParamsFromRequest(r)
 	view := s.friendlyDashboardView(currentUser, params)
-	if err := s.templates.RenderPartial(w, "friendly_dashboard.html", view); err != nil {
+	if isHTMX(r) {
+		if err := s.templates.RenderPartial(w, "friendly_dashboard.html", view); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+	page := struct {
+		BaseView
+		Dashboard FriendlyDashboardView
+	}{
+		BaseView: BaseView{
+			Title:           "Mecze towarzyskie",
+			CurrentUser:     currentUser,
+			Users:           s.store.ListUsers(),
+			IsAuthenticated: currentUser.ID != "",
+			IsDev:           isDevMode(),
+		},
+		Dashboard: view,
+	}
+	if err := s.templates.Render(w, "friendly_dashboard_page.html", page); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -439,30 +522,142 @@ func (s *Server) handleFriendlySelect(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (s *Server) handleReportNew(w http.ResponseWriter, r *http.Request) {
+	currentUser := s.currentUser(r)
+	view := struct {
+		BaseView
+		Form ReportFormView
+	}{
+		BaseView: BaseView{
+			Title:           "Zglos",
+			CurrentUser:     currentUser,
+			Users:           s.store.ListUsers(),
+			IsAuthenticated: currentUser.ID != "",
+			IsDev:           isDevMode(),
+		},
+		Form: ReportFormView{},
+	}
+	if err := s.templates.Render(w, "reports_new.html", view); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (s *Server) handleReportCreate(w http.ResponseWriter, r *http.Request) {
+	currentUser := s.currentUser(r)
+	if currentUser.ID == "" {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "nieprawidlowe dane", http.StatusBadRequest)
+		return
+	}
+	rType := strings.TrimSpace(r.FormValue("type"))
+	title := strings.TrimSpace(r.FormValue("title"))
+	description := strings.TrimSpace(r.FormValue("description"))
+	if rType != string(model.ReportBug) && rType != string(model.ReportFeature) {
+		s.renderReportFormError(w, currentUser, "Wybierz typ zgloszenia.", rType, title, description)
+		return
+	}
+	if title == "" || description == "" {
+		s.renderReportFormError(w, currentUser, "Wypelnij tytul i opis.", rType, title, description)
+		return
+	}
+	report := model.Report{
+		ID:          uuid.NewString(),
+		UserID:      currentUser.ID,
+		Type:        model.ReportType(rType),
+		Title:       title,
+		Description: description,
+		Status:      model.ReportOpen,
+		CreatedAt:   time.Now(),
+	}
+	if _, err := s.store.CreateReport(report); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/?notice=report_added", http.StatusSeeOther)
+}
+
+func (s *Server) renderReportFormError(w http.ResponseWriter, currentUser model.User, message string, rType string, title string, description string) {
+	view := struct {
+		BaseView
+		Form ReportFormView
+	}{
+		BaseView: BaseView{
+			Title:           "Zglos",
+			CurrentUser:     currentUser,
+			Users:           s.store.ListUsers(),
+			IsAuthenticated: currentUser.ID != "",
+			IsDev:           isDevMode(),
+		},
+		Form: ReportFormView{
+			Type:        rType,
+			Title:       title,
+			Description: description,
+			Error:       message,
+		},
+	}
+	if err := s.templates.Render(w, "reports_new.html", view); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (s *Server) handleReportsList(w http.ResponseWriter, r *http.Request) {
+	currentUser := s.currentUser(r)
+	if !isSuperAdmin(currentUser) {
+		http.Error(w, "brak uprawnien", http.StatusForbidden)
+		return
+	}
+	reports := s.store.ListReports()
+	items := make([]ReportListItem, 0, len(reports))
+	for _, report := range reports {
+		user, _ := s.store.GetUser(report.UserID)
+		items = append(items, ReportListItem{Report: report, Reporter: user})
+	}
+	view := ReportsView{
+		BaseView: BaseView{
+			Title:           "Zgloszenia",
+			CurrentUser:     currentUser,
+			Users:           s.store.ListUsers(),
+			IsAuthenticated: true,
+			IsDev:           isDevMode(),
+		},
+		Items: items,
+	}
+	if err := s.templates.Render(w, "reports_list.html", view); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
 func (s *Server) handleFriendlyCreate(w http.ResponseWriter, r *http.Request) {
+	currentUser := s.currentUser(r)
+	if currentUser.ID == "" {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "nieprawidlowe dane", http.StatusBadRequest)
 		return
 	}
 	opponentID := r.FormValue("opponent_id")
 	if opponentID == "" {
-		http.Error(w, "wybierz przeciwnika", http.StatusBadRequest)
+		s.renderFriendlyFormError(w, currentUser, "Nie wybrano przeciwnika", r.FormValue("played_at"))
 		return
 	}
 	opponent, ok := s.store.GetUser(opponentID)
 	if !ok {
-		http.Error(w, "nie znaleziono gracza", http.StatusNotFound)
+		s.renderFriendlyFormError(w, currentUser, "Nie wybrano przeciwnika", r.FormValue("played_at"))
 		return
 	}
-	currentUser := s.currentUser(r)
 	if opponent.ID == currentUser.ID {
-		http.Error(w, "nie mozesz wybrac siebie", http.StatusBadRequest)
+		s.renderFriendlyFormError(w, currentUser, "Nie mozna wybrac siebie", r.FormValue("played_at"))
 		return
 	}
 	setsCount := parseSetsCount(r.FormValue("sets_count"), 20)
 	sets := parseSets(r, setsCount)
 	if len(sets) == 0 {
-		http.Error(w, "uzupelnij wynik", http.StatusBadRequest)
+		s.renderFriendlyFormError(w, currentUser, "Uzupelnij przynajmniej jeden set (mozesz zostawic puste pozostale).", r.FormValue("played_at"))
 		return
 	}
 	playedAt, err := parsePlayedAt(r.FormValue("played_at"))
@@ -472,14 +667,14 @@ func (s *Server) handleFriendlyCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	match := model.FriendlyMatch{
-		ID:        uuid.NewString(),
-		PlayerAID: currentUser.ID,
-		PlayerBID: opponent.ID,
-		Sets:      sets,
-		Status:    model.MatchPending,
+		ID:         uuid.NewString(),
+		PlayerAID:  currentUser.ID,
+		PlayerBID:  opponent.ID,
+		Sets:       sets,
+		Status:     model.MatchPending,
 		ReportedBy: currentUser.ID,
-		PlayedAt:  playedAt,
-		CreatedAt: time.Now(),
+		PlayedAt:   playedAt,
+		CreatedAt:  time.Now(),
 	}
 	if _, err := s.store.CreateFriendlyMatch(match); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -493,7 +688,40 @@ func (s *Server) handleFriendlyCreate(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, "/?notice=friendly_added", http.StatusSeeOther)
+}
+
+func (s *Server) renderFriendlyFormError(w http.ResponseWriter, currentUser model.User, message string, playedAt string) {
+	if playedAt == "" {
+		playedAt = time.Now().Format("2006-01-02T15:04")
+	}
+	view := FriendlyFormView{
+		LeagueUsers: s.store.ListUsers(),
+		Search: FriendlySearchView{
+			EmptyQuery: true,
+		},
+		SearchInput: FriendlySearchInputView{
+			Query: "",
+		},
+		PlayedAt: playedAt,
+		Error:    message,
+	}
+	page := struct {
+		BaseView
+		Form FriendlyFormView
+	}{
+		BaseView: BaseView{
+			Title:           "Nowy mecz towarzyski",
+			CurrentUser:     currentUser,
+			Users:           s.store.ListUsers(),
+			IsAuthenticated: true,
+			IsDev:           isDevMode(),
+		},
+		Form: view,
+	}
+	if err := s.templates.Render(w, "friendly_new.html", page); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func (s *Server) handleFriendlyConfirm(w http.ResponseWriter, r *http.Request) {
@@ -555,10 +783,11 @@ func (s *Server) handleFriendlyReject(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleLeagueNew(w http.ResponseWriter, r *http.Request) {
 	view := BaseView{
-		Title:       "Nowa liga",
-		CurrentUser: s.currentUser(r),
-		Users:       s.store.ListUsers(),
+		Title:           "Nowa liga",
+		CurrentUser:     s.currentUser(r),
+		Users:           s.store.ListUsers(),
 		IsAuthenticated: true,
+		IsDev:           isDevMode(),
 	}
 	if err := s.templates.Render(w, "league_new.html", view); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -568,18 +797,11 @@ func (s *Server) handleLeagueNew(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleLeagueSearch(w http.ResponseWriter, r *http.Request) {
 	currentUser := s.currentUser(r)
 	query := strings.TrimSpace(r.URL.Query().Get("q"))
-	results := s.searchLeagues(query)
-	view := LeagueSearchView{
-		BaseView: BaseView{
-			Title:       "Wyszukaj ligi",
-			CurrentUser: currentUser,
-			Users:       s.store.ListUsers(),
-			IsAuthenticated: currentUser.ID != "",
-		},
-		Query:      query,
-		Results:    results,
-		EmptyQuery: query == "",
-	}
+	view := s.leagueSearchView(query, currentUser)
+	view.Title = "Wyszukaj ligi"
+	view.Users = s.store.ListUsers()
+	view.IsAuthenticated = currentUser.ID != ""
+	view.IsDev = isDevMode()
 	if err := s.templates.Render(w, "league_search.html", view); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -587,14 +809,30 @@ func (s *Server) handleLeagueSearch(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleLeagueSearchResults(w http.ResponseWriter, r *http.Request) {
 	query := strings.TrimSpace(r.URL.Query().Get("q"))
-	view := LeagueSearchView{
-		Query:      query,
-		Results:    s.searchLeagues(query),
-		EmptyQuery: query == "",
-	}
+	currentUser := s.currentUser(r)
+	view := s.leagueSearchView(query, currentUser)
 	if err := s.templates.RenderPartial(w, "league_search_results.html", view); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+func (s *Server) handleLeagueJoin(w http.ResponseWriter, r *http.Request) {
+	leagueID := chi.URLParam(r, "leagueID")
+	currentUser := s.currentUser(r)
+	if currentUser.ID == "" {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	league, ok := s.store.GetLeague(leagueID)
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+	if err := s.store.AddPlayerToLeague(league.ID, currentUser.ID); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/leagues/"+league.ID, http.StatusSeeOther)
 }
 
 func (s *Server) handleLeagueCreate(w http.ResponseWriter, r *http.Request) {
@@ -628,18 +866,18 @@ func (s *Server) handleLeagueCreate(w http.ResponseWriter, r *http.Request) {
 	currentUser := s.currentUser(r)
 	status := leagueStatusForDates(startDate, endDate, time.Now())
 	league := model.League{
-		ID:          uuid.NewString(),
-		Name:        name,
-		Description: description,
-		Location:    location,
-		OwnerID:     currentUser.ID,
-		AdminRoles:  map[string]model.LeagueAdminRole{currentUser.ID: model.LeagueAdminPlayer},
-		PlayerIDs:   []string{currentUser.ID},
+		ID:           uuid.NewString(),
+		Name:         name,
+		Description:  description,
+		Location:     location,
+		OwnerID:      currentUser.ID,
+		AdminRoles:   map[string]model.LeagueAdminRole{currentUser.ID: model.LeagueAdminPlayer},
+		PlayerIDs:    []string{currentUser.ID},
 		SetsPerMatch: setsPerMatch,
-		StartDate:   startDate,
-		EndDate:     endDate,
-		Status:      status,
-		CreatedAt:   time.Now(),
+		StartDate:    startDate,
+		EndDate:      endDate,
+		Status:       status,
+		CreatedAt:    time.Now(),
 	}
 	league, err = s.store.CreateLeague(league)
 	if err != nil {
@@ -690,22 +928,23 @@ func (s *Server) handleLeagueShow(w http.ResponseWriter, r *http.Request) {
 
 	view := LeagueView{
 		BaseView: BaseView{
-			Title:       league.Name,
-			CurrentUser: currentUser,
-			Users:       s.store.ListUsers(),
+			Title:           league.Name,
+			CurrentUser:     currentUser,
+			Users:           s.store.ListUsers(),
 			IsAuthenticated: true,
+			IsDev:           isDevMode(),
 		},
-		League:    league,
-		Players:   players,
-		Standings: BuildStandings(players, matches),
-		Matches:   matchViews,
-		SetsRange: setsRange,
-		IsAdmin:   isLeagueAdmin(league, currentUser.ID),
-		IsPlayer:  isLeaguePlayer(league, currentUser.ID),
-		Admins:    s.leagueAdmins(league),
+		League:          league,
+		Players:         players,
+		Standings:       BuildStandings(players, matches),
+		Matches:         matchViews,
+		SetsRange:       setsRange,
+		IsAdmin:         isLeagueAdmin(league, currentUser.ID),
+		IsPlayer:        isLeaguePlayer(league, currentUser.ID),
+		Admins:          s.leagueAdmins(league),
 		AdminCandidates: s.leagueAdminCandidates(league),
-		Page:       page,
-		TotalPages: totalPages,
+		Page:            page,
+		TotalPages:      totalPages,
 		PlayersPanel: LeaguePlayersPanelView{
 			League:  league,
 			Players: players,
@@ -1139,16 +1378,16 @@ func (s *Server) friendlyDashboardView(currentUser model.User, params friendlyDa
 	}
 
 	view := FriendlyDashboardView{
-		Period:      period,
-		CustomMonth: customMonth,
-		CustomYear:  customYear,
+		Period:       period,
+		CustomMonth:  customMonth,
+		CustomYear:   customYear,
 		MonthOptions: monthOptions(),
 		YearOptions:  yearOptions(matches, now.Year()),
-		OpponentID: params.OpponentID,
-		Opponents:  s.opponentsForUser(currentUser.ID),
-		Matches:    []FriendlyMatchView{},
-		Page:       page,
-		TotalPages: totalPages,
+		OpponentID:   params.OpponentID,
+		Opponents:    s.opponentsForUser(currentUser.ID),
+		Matches:      []FriendlyMatchView{},
+		Page:         page,
+		TotalPages:   totalPages,
 	}
 
 	paged := filtered
@@ -1210,6 +1449,14 @@ func isLeaguePlayer(league model.League, userID string) bool {
 		}
 	}
 	return false
+}
+
+func isSuperAdmin(user model.User) bool {
+	return user.Role == model.RoleSuperAdmin
+}
+
+func isDevMode() bool {
+	return strings.EqualFold(strings.TrimSpace(os.Getenv("APP")), "dev")
 }
 
 func leagueStatusForDates(start time.Time, end *time.Time, now time.Time) model.LeagueStatus {
@@ -1358,6 +1605,165 @@ func (s *Server) searchLeagues(query string) []model.League {
 		}
 	}
 	return results
+}
+
+func (s *Server) leagueSearchView(query string, currentUser model.User) LeagueSearchView {
+	results := s.searchLeagues(query)
+	items := make([]LeagueSearchResultView, 0, len(results))
+	for _, league := range results {
+		items = append(items, LeagueSearchResultView{
+			League:   league,
+			InLeague: isLeaguePlayer(league, currentUser.ID) || isLeagueAdmin(league, currentUser.ID),
+		})
+	}
+	return LeagueSearchView{
+		BaseView: BaseView{
+			CurrentUser: currentUser,
+		},
+		Query:      query,
+		Results:    items,
+		EmptyQuery: query == "",
+	}
+}
+
+type activityEntry struct {
+	When time.Time
+	Item RecentActivityItem
+}
+
+func (s *Server) leagueActivityEntries(currentUser model.User, statuses map[model.MatchStatus]bool) []activityEntry {
+	entries := []activityEntry{}
+	for _, league := range s.leaguesForUser(currentUser.ID) {
+		matches := s.store.ListMatches(league.ID)
+		for _, match := range matches {
+			if match.PlayerAID != currentUser.ID && match.PlayerBID != currentUser.ID {
+				continue
+			}
+			if !statuses[match.Status] {
+				continue
+			}
+			view := s.matchView(match, currentUser)
+			item := RecentActivityItem{
+				Kind:          "league",
+				MatchID:       match.ID,
+				PlayerA:       view.PlayerA,
+				PlayerB:       view.PlayerB,
+				ScoreLine:     view.ScoreLine,
+				StatusText:    view.StatusText,
+				CanConfirm:    view.CanConfirm,
+				CanReject:     view.CanReject,
+				PlayedAtLabel: match.CreatedAt.Format("02 Jan 2006 15:04"),
+				LeagueName:    league.Name,
+			}
+			entries = append(entries, activityEntry{
+				When: match.CreatedAt,
+				Item: item,
+			})
+		}
+	}
+	return entries
+}
+
+func (s *Server) friendlyActivityEntries(currentUser model.User, statuses map[model.MatchStatus]bool) []activityEntry {
+	entries := []activityEntry{}
+	for _, match := range s.store.ListFriendlyMatches() {
+		if match.PlayerAID != currentUser.ID && match.PlayerBID != currentUser.ID {
+			continue
+		}
+		if !statuses[match.Status] {
+			continue
+		}
+		view := s.friendlyMatchView(match, currentUser)
+		item := RecentActivityItem{
+			Kind:          "friendly",
+			MatchID:       match.ID,
+			PlayerA:       view.PlayerA,
+			PlayerB:       view.PlayerB,
+			ScoreLine:     view.ScoreLine,
+			StatusText:    view.StatusText,
+			CanConfirm:    view.CanConfirm,
+			CanReject:     view.CanReject,
+			PlayedAtLabel: view.PlayedAtLabel,
+		}
+		entries = append(entries, activityEntry{
+			When: match.PlayedAt,
+			Item: item,
+		})
+	}
+	return entries
+}
+
+func buildDashboardTabView(entries []activityEntry, maxTotal int, maxDisplay int, moreURL string, emptyText string) DashboardTabView {
+	total := len(entries)
+	if maxTotal > 0 && total > maxTotal {
+		entries = entries[:maxTotal]
+	}
+	items := make([]RecentActivityItem, 0, len(entries))
+	for _, entry := range entries {
+		items = append(items, entry.Item)
+	}
+	view := DashboardTabView{
+		Items:     items,
+		HasMore:   total > maxDisplay,
+		MoreURL:   moreURL,
+		EmptyText: emptyText,
+	}
+	if len(view.Items) > maxDisplay {
+		view.Items = view.Items[:maxDisplay]
+	}
+	return view
+}
+
+func (s *Server) buildMatchesListView(entries []activityEntry, page int, pageSize int, basePath string, currentUser model.User, title string) MatchesListView {
+	if page < 1 {
+		page = 1
+	}
+	total := len(entries)
+	totalPages := int(math.Ceil(float64(total) / float64(pageSize)))
+	if totalPages > 0 && page > totalPages {
+		page = totalPages
+	}
+	start := (page - 1) * pageSize
+	end := start + pageSize
+	if start > total {
+		start = total
+	}
+	if end > total {
+		end = total
+	}
+	items := make([]RecentActivityItem, 0, pageSize)
+	for _, entry := range entries[start:end] {
+		items = append(items, entry.Item)
+	}
+
+	view := MatchesListView{
+		BaseView: BaseView{
+			Title:           title,
+			CurrentUser:     currentUser,
+			Users:           s.store.ListUsers(),
+			IsAuthenticated: currentUser.ID != "",
+			IsDev:           isDevMode(),
+		},
+		Items:      items,
+		Page:       page,
+		TotalPages: totalPages,
+		BasePath:   basePath,
+	}
+	if totalPages > 0 {
+		view.Pages = make([]int, 0, totalPages)
+		for i := 1; i <= totalPages; i++ {
+			view.Pages = append(view.Pages, i)
+		}
+	}
+	view.HasPrev = page > 1
+	view.HasNext = totalPages > 0 && page < totalPages
+	if view.HasPrev {
+		view.PrevPage = page - 1
+	}
+	if view.HasNext {
+		view.NextPage = page + 1
+	}
+	return view
 }
 
 func (s *Server) friendlyMatchView(match model.FriendlyMatch, currentUser model.User) FriendlyMatchView {

@@ -6,6 +6,7 @@
       <div class="text-base font-semibold text-slate-900">{{ .Selected.FullName }}</div>
     </div>
     <button
+      type="button"
       class="btn btn-xs btn-outline"
       hx-get="/friendlies/select?clear=1"
       hx-target="#friendly-selected"

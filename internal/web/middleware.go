@@ -26,7 +26,7 @@ func WithCurrentUser(store store.Store, next http.Handler) http.Handler {
 }
 
 func isPublicPath(path string) bool {
-	if path == "/login" || path == "/register" || path == "/healthz" || path == "/logout" {
+	if path == "/login" || path == "/register" || path == "/healthz" {
 		return true
 	}
 	return strings.HasPrefix(path, "/static/")
