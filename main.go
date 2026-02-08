@@ -71,6 +71,6 @@ func main() {
 	} else {
 		// Jesteśmy lokalnie -> Uruchom zwykły serwer HTTP
 		log.Println("Uruchamianie lokalnie na :80...")
-		http.ListenAndServe(":80:wq", r)
+		log.Fatal(http.ListenAndServe(":80", r))
 	}
 }
