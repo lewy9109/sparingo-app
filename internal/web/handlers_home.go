@@ -1,6 +1,7 @@
 package web
 
 import (
+	"math"
 	"net/http"
 	"sort"
 	"strconv"
@@ -13,14 +14,9 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	currentUser := s.currentUser(r)
 	users := s.store.ListUsers()
 	leagues := s.leaguesForUser(currentUser.ID)
-	notice := strings.TrimSpace(r.URL.Query().Get("notice"))
-	flash := ""
-	switch notice {
-	case "friendly_added":
-		flash = "Dodano mecz towarzyski."
-	case "report_added":
-		flash = "Dziękujemy! Zgłoszenie zostało zapisane."
-	}
+	flash := flashMessage(r.URL.Query().Get("notice"))
+	joinRequests := s.dashboardJoinRequests(currentUser)
+	availableLeagues, availablePage, availableTotalPages, availablePages, availableHasPrev, availableHasNext, availablePrevPage, availableNextPage := s.availableLeaguesPage(currentUser, r)
 
 	recentEntries := s.leagueActivityEntries(currentUser, map[model.MatchStatus]bool{
 		model.MatchPending:   true,
@@ -58,6 +54,15 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 			FlashSuccess:    flash,
 		},
 		Leagues:           leagues,
+		AvailableLeagues:  availableLeagues,
+		AvailablePage:     availablePage,
+		AvailableTotalPages: availableTotalPages,
+		AvailablePages:    availablePages,
+		AvailableHasPrev:  availableHasPrev,
+		AvailableHasNext:  availableHasNext,
+		AvailablePrevPage: availablePrevPage,
+		AvailableNextPage: availableNextPage,
+		JoinRequests:      joinRequests,
 		DashboardRecent:   buildDashboardTabView(recentEntries, 10, 6, "/matches/recent", "Brak wyników do wyświetlenia."),
 		DashboardPending:  buildDashboardTabView(pendingEntries, 0, 6, "/matches/pending", "Brak meczów do potwierdzenia."),
 		DashboardFriendly: buildDashboardTabView(friendlyEntries, 0, 6, "/friendlies/dashboard", "Brak wyników do wyświetlenia."),
@@ -129,6 +134,99 @@ func (s *Server) handleMatchesRecent(w http.ResponseWriter, r *http.Request) {
 	if err := s.templates.Render(w, "matches_list.html", view); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+func (s *Server) dashboardJoinRequests(currentUser model.User) []JoinRequestDashboardItem {
+	if currentUser.ID == "" {
+		return nil
+	}
+	leagues := s.store.ListLeagues()
+	items := []JoinRequestDashboardItem{}
+	for _, league := range leagues {
+		if !canManageLeague(league, currentUser) {
+			continue
+		}
+		requests := s.store.ListJoinRequests(league.ID)
+		for _, req := range requests {
+			if req.Status != model.JoinRequestPending {
+				continue
+			}
+			user, ok := s.store.GetUser(req.UserID)
+			if !ok {
+				continue
+			}
+			items = append(items, JoinRequestDashboardItem{
+				League:  league,
+				User:    user,
+				Request: req,
+			})
+		}
+	}
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].Request.CreatedAt.After(items[j].Request.CreatedAt)
+	})
+	return items
+}
+
+func (s *Server) availableLeaguesPage(currentUser model.User, r *http.Request) ([]model.League, int, int, []int, bool, bool, int, int) {
+	const pageSize = 5
+	page := 1
+	if v := strings.TrimSpace(r.URL.Query().Get("available_page")); v != "" {
+		if parsed, err := strconv.Atoi(v); err == nil && parsed > 0 {
+			page = parsed
+		}
+	}
+
+	leagues := s.store.ListLeagues()
+	filtered := make([]model.League, 0, len(leagues))
+	for _, league := range leagues {
+		if isLeaguePlayer(league, currentUser.ID) || isLeagueAdmin(league, currentUser.ID) {
+			continue
+		}
+		filtered = append(filtered, league)
+	}
+	sort.Slice(filtered, func(i, j int) bool {
+		return filtered[i].CreatedAt.After(filtered[j].CreatedAt)
+	})
+
+	total := len(filtered)
+	totalPages := int(math.Ceil(float64(total) / float64(pageSize)))
+	if totalPages == 0 {
+		totalPages = 1
+	}
+	if page > totalPages {
+		page = totalPages
+	}
+	start := (page - 1) * pageSize
+	end := start + pageSize
+	if start > total {
+		start = total
+	}
+	if end > total {
+		end = total
+	}
+	paged := filtered
+	if total > 0 {
+		paged = filtered[start:end]
+	} else {
+		paged = []model.League{}
+	}
+
+	pages := make([]int, 0, totalPages)
+	for i := 1; i <= totalPages; i++ {
+		pages = append(pages, i)
+	}
+	hasPrev := page > 1
+	hasNext := page < totalPages
+	prevPage := 0
+	nextPage := 0
+	if hasPrev {
+		prevPage = page - 1
+	}
+	if hasNext {
+		nextPage = page + 1
+	}
+	return paged, page, totalPages, pages, hasPrev, hasNext, prevPage, nextPage
 }
 
 func (s *Server) handleMatchesPending(w http.ResponseWriter, r *http.Request) {

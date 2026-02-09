@@ -54,6 +54,8 @@ func (s *Server) Routes() http.Handler {
 	r.Post("/leagues/{leagueID}/admins", s.handleLeagueAdminAdd)
 	r.Post("/leagues/{leagueID}/admins/{adminID}/role", s.handleLeagueAdminRoleUpdate)
 	r.Post("/leagues/{leagueID}/admins/{adminID}/remove", s.handleLeagueAdminRemove)
+	r.Post("/leagues/{leagueID}/join-requests/{requestID}/approve", s.handleJoinRequestApprove)
+	r.Post("/leagues/{leagueID}/join-requests/{requestID}/reject", s.handleJoinRequestReject)
 	r.Post("/leagues/{leagueID}/end", s.handleLeagueEnd)
 	r.Post("/leagues/{leagueID}/matches", s.handleMatchCreate)
 	r.Post("/matches/{matchID}/confirm", s.handleMatchConfirm)

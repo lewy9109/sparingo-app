@@ -240,6 +240,114 @@ func (s *PostgresStore) RemoveAdminFromLeague(leagueID, userID string) error {
 	return s.UpdateLeague(league)
 }
 
+func (s *PostgresStore) CreateJoinRequest(request model.LeagueJoinRequest) (model.LeagueJoinRequest, error) {
+	if request.ID == "" {
+		request.ID = uuid.NewString()
+	}
+	if request.Status == "" {
+		request.Status = model.JoinRequestPending
+	}
+	if request.CreatedAt.IsZero() {
+		request.CreatedAt = time.Now()
+	}
+	decidedBy := nullableText(request.DecidedBy)
+	decidedAt := nullableTime(request.DecidedAt)
+	_, err := s.db.Exec(`INSERT INTO league_join_requests (id, league_id, user_id, status, created_at, decided_by, decided_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+		request.ID, request.LeagueID, request.UserID, string(request.Status), request.CreatedAt, decidedBy, decidedAt,
+	)
+	if err != nil {
+		return model.LeagueJoinRequest{}, err
+	}
+	return request, nil
+}
+
+func (s *PostgresStore) ListJoinRequests(leagueID string) []model.LeagueJoinRequest {
+	rows, err := s.db.Query(`SELECT id, league_id, user_id, status, created_at, decided_by, decided_at
+		FROM league_join_requests WHERE league_id = $1 ORDER BY created_at DESC`, leagueID)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+
+	items := []model.LeagueJoinRequest{}
+	for rows.Next() {
+		var req model.LeagueJoinRequest
+		var status string
+		var decidedBy sql.NullString
+		var decidedAt sql.NullTime
+		if err := rows.Scan(&req.ID, &req.LeagueID, &req.UserID, &status, &req.CreatedAt, &decidedBy, &decidedAt); err != nil {
+			continue
+		}
+		req.Status = model.JoinRequestStatus(status)
+		if decidedBy.Valid {
+			req.DecidedBy = decidedBy.String
+		}
+		if decidedAt.Valid {
+			t := decidedAt.Time
+			req.DecidedAt = &t
+		}
+		items = append(items, req)
+	}
+	return items
+}
+
+func (s *PostgresStore) GetJoinRequest(id string) (model.LeagueJoinRequest, bool) {
+	var req model.LeagueJoinRequest
+	var status string
+	var decidedBy sql.NullString
+	var decidedAt sql.NullTime
+	err := s.db.QueryRow(`SELECT id, league_id, user_id, status, created_at, decided_by, decided_at
+		FROM league_join_requests WHERE id = $1`, id).
+		Scan(&req.ID, &req.LeagueID, &req.UserID, &status, &req.CreatedAt, &decidedBy, &decidedAt)
+	if err != nil {
+		return model.LeagueJoinRequest{}, false
+	}
+	req.Status = model.JoinRequestStatus(status)
+	if decidedBy.Valid {
+		req.DecidedBy = decidedBy.String
+	}
+	if decidedAt.Valid {
+		t := decidedAt.Time
+		req.DecidedAt = &t
+	}
+	return req, true
+}
+
+func (s *PostgresStore) UpdateJoinRequest(request model.LeagueJoinRequest) error {
+	decidedBy := nullableText(request.DecidedBy)
+	decidedAt := nullableTime(request.DecidedAt)
+	_, err := s.db.Exec(`UPDATE league_join_requests SET status = $1, decided_by = $2, decided_at = $3 WHERE id = $4`,
+		string(request.Status), decidedBy, decidedAt, request.ID,
+	)
+	return err
+}
+
+func nullableText(value string) interface{} {
+	if strings.TrimSpace(value) == "" {
+		return nil
+	}
+	return value
+}
+
+func nullableTime(value *time.Time) interface{} {
+	if value == nil || value.IsZero() {
+		return nil
+	}
+	return *value
+}
+
+func (s *PostgresStore) HasPendingJoinRequest(leagueID, userID string) bool {
+	var exists bool
+	err := s.db.QueryRow(`SELECT EXISTS (
+		SELECT 1 FROM league_join_requests WHERE league_id = $1 AND user_id = $2 AND status = $3
+	)`, leagueID, userID, string(model.JoinRequestPending)).Scan(&exists)
+	if err != nil {
+		return false
+	}
+	return exists
+}
+
 func (s *PostgresStore) ListMatches(leagueID string) []model.Match {
 	rows, err := s.db.Query(`SELECT id, league_id, player_a_id, player_b_id, sets_json, status, reported_by, confirmed_by, created_at FROM matches WHERE league_id = $1`, leagueID)
 	if err != nil {

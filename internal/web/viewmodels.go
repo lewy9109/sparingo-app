@@ -14,6 +14,15 @@ type BaseView struct {
 type HomeView struct {
 	BaseView
 	Leagues               []model.League
+	AvailableLeagues      []model.League
+	AvailablePage         int
+	AvailableTotalPages   int
+	AvailablePages        []int
+	AvailableHasPrev      bool
+	AvailableHasNext      bool
+	AvailablePrevPage     int
+	AvailableNextPage     int
+	JoinRequests          []JoinRequestDashboardItem
 	RecentActivity        []RecentActivityItem
 	RecentPending         []RecentActivityItem
 	RecentFriendlyMatches []FriendlyMatchView
@@ -36,8 +45,10 @@ type LeagueView struct {
 	SetsRange       []int
 	IsAdmin         bool
 	IsPlayer        bool
+	PendingJoin     bool
 	Admins          []LeagueAdminView
 	AdminCandidates []model.User
+	JoinRequests    []LeagueJoinRequestView
 	Page            int
 	TotalPages      int
 	Pages           []int
@@ -57,6 +68,7 @@ type LeagueSearchView struct {
 type LeagueSearchResultView struct {
 	League   model.League
 	InLeague bool
+	Pending  bool
 }
 
 type MatchView struct {
@@ -183,6 +195,12 @@ type ReportsView struct {
 	Items []ReportListItem
 }
 
+type JoinRequestDashboardItem struct {
+	League  model.League
+	User    model.User
+	Request model.LeagueJoinRequest
+}
+
 type MatchesListView struct {
 	BaseView
 	Items      []RecentActivityItem
@@ -230,4 +248,9 @@ type PlayerSearchView struct {
 type LeagueAdminView struct {
 	User model.User
 	Role model.LeagueAdminRole
+}
+
+type LeagueJoinRequestView struct {
+	Request model.LeagueJoinRequest
+	User    model.User
 }

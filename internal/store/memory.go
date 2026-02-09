@@ -22,6 +22,7 @@ type MemoryStore struct {
 	matches    map[string]model.Match
 	friendlies map[string]model.FriendlyMatch
 	reports    map[string]model.Report
+	requests   map[string]model.LeagueJoinRequest
 }
 
 func NewMemoryStore() *MemoryStore {
@@ -31,6 +32,7 @@ func NewMemoryStore() *MemoryStore {
 		matches:    make(map[string]model.Match),
 		friendlies: make(map[string]model.FriendlyMatch),
 		reports:    make(map[string]model.Report),
+		requests:   make(map[string]model.LeagueJoinRequest),
 	}
 	if strings.ToLower(strings.TrimSpace(os.Getenv("APP"))) != "prod" {
 		seedData(s)
@@ -225,6 +227,68 @@ func (s *MemoryStore) RemoveAdminFromLeague(leagueID, userID string) error {
 	delete(league.AdminRoles, userID)
 	s.leagues[leagueID] = league
 	return nil
+}
+
+func (s *MemoryStore) CreateJoinRequest(request model.LeagueJoinRequest) (model.LeagueJoinRequest, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if request.ID == "" {
+		request.ID = uuid.NewString()
+	}
+	if request.Status == "" {
+		request.Status = model.JoinRequestPending
+	}
+	if request.CreatedAt.IsZero() {
+		request.CreatedAt = time.Now()
+	}
+	s.requests[request.ID] = request
+	return request, nil
+}
+
+func (s *MemoryStore) ListJoinRequests(leagueID string) []model.LeagueJoinRequest {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	items := []model.LeagueJoinRequest{}
+	for _, req := range s.requests {
+		if req.LeagueID == leagueID {
+			items = append(items, req)
+		}
+	}
+	sort.Slice(items, func(i, j int) bool { return items[i].CreatedAt.After(items[j].CreatedAt) })
+	return items
+}
+
+func (s *MemoryStore) GetJoinRequest(id string) (model.LeagueJoinRequest, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	req, ok := s.requests[id]
+	return req, ok
+}
+
+func (s *MemoryStore) UpdateJoinRequest(request model.LeagueJoinRequest) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, ok := s.requests[request.ID]; !ok {
+		return errors.New("join request not found")
+	}
+	s.requests[request.ID] = request
+	return nil
+}
+
+func (s *MemoryStore) HasPendingJoinRequest(leagueID, userID string) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for _, req := range s.requests {
+		if req.LeagueID == leagueID && req.UserID == userID && req.Status == model.JoinRequestPending {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *MemoryStore) ListMatches(leagueID string) []model.Match {

@@ -48,6 +48,51 @@
   {{ end }}
 </section>
 
+{{ if and .IsAuthenticated (not .IsAdmin) (not .IsPlayer) }}
+  <section class="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <h2 class="text-xl font-semibold">Dołącz do ligi</h2>
+    {{ if .PendingJoin }}
+      <p class="mt-2 text-sm text-slate-500">Twoja prośba oczekuje na akceptację.</p>
+      <span class="badge badge-outline mt-3">Prośba wysłana</span>
+    {{ else }}
+      <p class="mt-2 text-sm text-slate-500">Wyślij prośbę o dołączenie do tej ligi.</p>
+      <form method="post" action="/leagues/{{ .League.ID }}/join" class="mt-3">
+        <button class="btn btn-primary btn-sm">Prośba o dołączenie</button>
+      </form>
+    {{ end }}
+  </section>
+{{ end }}
+
+<section class="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+  <h2 class="text-xl font-semibold">Prośby o dołączenie</h2>
+  <div class="mt-4 grid gap-2">
+    {{ if .IsAdmin }}
+      {{ if .JoinRequests }}
+        {{ range .JoinRequests }}
+          <div class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-slate-50 px-4 py-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="badge badge-outline">{{ .User.FullName }}</span>
+              <span class="text-xs text-slate-500">{{ .User.Email }}</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <form method="post" action="/leagues/{{ $.League.ID }}/join-requests/{{ .Request.ID }}/approve">
+                <button class="btn btn-xs btn-primary">Akceptuj</button>
+              </form>
+              <form method="post" action="/leagues/{{ $.League.ID }}/join-requests/{{ .Request.ID }}/reject">
+                <button class="btn btn-xs btn-outline btn-error">Odrzuć</button>
+              </form>
+            </div>
+          </div>
+        {{ end }}
+      {{ else }}
+        <span class="text-sm text-slate-500">Brak nowych próśb.</span>
+      {{ end }}
+    {{ else }}
+      <span class="text-sm text-slate-500">Tylko administratorzy ligi mogą przeglądać prośby.</span>
+    {{ end }}
+  </div>
+</section>
+
 <section class="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
   <h2 class="text-xl font-semibold">Administratorzy ligi</h2>
   <div class="mt-4 grid gap-2">
@@ -56,9 +101,11 @@
         <div class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-slate-50 px-4 py-3">
           <div class="flex flex-wrap items-center gap-2">
             <span class="badge badge-outline">{{ .User.FullName }}</span>
-            <span class="badge badge-outline">
-              {{ if eq .Role "moderator" }}Moderator{{ else }}Moderator-Gracz{{ end }}
-            </span>
+            {{ if $.IsAdmin }}
+              <span class="badge badge-outline">
+                {{ if eq .Role "moderator" }}Moderator{{ else }}Moderator-Gracz{{ end }}
+              </span>
+            {{ end }}
           </div>
           {{ if $.IsAdmin }}
             {{ if ne .User.ID $.League.OwnerID }}
@@ -154,17 +201,26 @@
         <div class="grid gap-3 sm:grid-cols-2">
           <div>
             <label class="label"><span class="label-text">Gracz A</span></label>
-            <select name="player_a" class="select select-bordered w-full" required>
-              {{ range .Players }}
-                <option value="{{ .ID }}">{{ .FullName }}</option>
-              {{ end }}
-            </select>
+            {{ if .IsAdmin }}
+              <select name="player_a_id" class="select select-bordered w-full" required>
+                {{ range .Players }}
+                  <option value="{{ .ID }}">{{ .FullName }}</option>
+                {{ end }}
+              </select>
+            {{ else }}
+              <input type="hidden" name="player_a_id" value="{{ .CurrentUser.ID }}">
+              <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                {{ .CurrentUser.FullName }}
+              </div>
+            {{ end }}
           </div>
           <div>
             <label class="label"><span class="label-text">Gracz B</span></label>
-            <select name="player_b" class="select select-bordered w-full" required>
+            <select name="player_b_id" class="select select-bordered w-full" required>
               {{ range .Players }}
-                <option value="{{ .ID }}">{{ .FullName }}</option>
+                {{ if or $.IsAdmin (ne .ID $.CurrentUser.ID) }}
+                  <option value="{{ .ID }}">{{ .FullName }}</option>
+                {{ end }}
               {{ end }}
             </select>
           </div>

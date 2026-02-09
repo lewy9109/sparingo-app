@@ -36,7 +36,7 @@ func (s *Server) handleDevSwitchUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func isSuperAdmin(user model.User) bool {
-	return user.Role == model.RoleSuperAdmin
+	return strings.EqualFold(strings.TrimSpace(string(user.Role)), string(model.RoleSuperAdmin))
 }
 
 func isDevMode() bool {

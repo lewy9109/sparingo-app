@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -15,9 +16,14 @@ import (
 )
 
 func (s *Server) handleLeagueNew(w http.ResponseWriter, r *http.Request) {
+	currentUser := s.currentUser(r)
+	if !canCreateLeague(currentUser) {
+		http.Error(w, "brak uprawnień", http.StatusForbidden)
+		return
+	}
 	view := BaseView{
 		Title:           "Nowa liga",
-		CurrentUser:     s.currentUser(r),
+		CurrentUser:     currentUser,
 		Users:           s.store.ListUsers(),
 		IsAuthenticated: true,
 		IsDev:           isDevMode(),
@@ -35,6 +41,7 @@ func (s *Server) handleLeagueSearch(w http.ResponseWriter, r *http.Request) {
 	view.Users = s.store.ListUsers()
 	view.IsAuthenticated = currentUser.ID != ""
 	view.IsDev = isDevMode()
+	view.FlashSuccess = flashMessage(r.URL.Query().Get("notice"))
 	if err := s.templates.Render(w, "league_search.html", view); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -61,11 +68,25 @@ func (s *Server) handleLeagueJoin(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if err := s.store.AddPlayerToLeague(league.ID, currentUser.ID); err != nil {
+	if isLeaguePlayer(league, currentUser.ID) || isLeagueAdmin(league, currentUser.ID) {
+		http.Redirect(w, r, "/leagues/"+league.ID, http.StatusSeeOther)
+		return
+	}
+	if s.store.HasPendingJoinRequest(league.ID, currentUser.ID) {
+		redirectBack(w, r, "/leagues/"+league.ID, "")
+		return
+	}
+	_, err := s.store.CreateJoinRequest(model.LeagueJoinRequest{
+		LeagueID:  league.ID,
+		UserID:    currentUser.ID,
+		Status:    model.JoinRequestPending,
+		CreatedAt: time.Now(),
+	})
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, r, "/leagues/"+league.ID, http.StatusSeeOther)
+	redirectBack(w, r, "/leagues/"+league.ID, "join_requested")
 }
 
 func (s *Server) handleLeagueCreate(w http.ResponseWriter, r *http.Request) {
@@ -97,6 +118,10 @@ func (s *Server) handleLeagueCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	currentUser := s.currentUser(r)
+	if !canCreateLeague(currentUser) {
+		http.Error(w, "brak uprawnień", http.StatusForbidden)
+		return
+	}
 	status := leagueStatusForDates(startDate, endDate, time.Now())
 	league := model.League{
 		ID:           uuid.NewString(),
@@ -127,6 +152,7 @@ func (s *Server) handleLeagueShow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	currentUser := s.currentUser(r)
+	canManage := canManageLeague(league, currentUser)
 	players := s.leaguePlayers(league)
 	setsRange := buildSetsRange(league.SetsPerMatch)
 
@@ -165,13 +191,14 @@ func (s *Server) handleLeagueShow(w http.ResponseWriter, r *http.Request) {
 			Users:           s.store.ListUsers(),
 			IsAuthenticated: true,
 			IsDev:           isDevMode(),
+			FlashSuccess:    flashMessage(r.URL.Query().Get("notice")),
 		},
 		League:          league,
 		Players:         players,
 		Standings:       BuildStandings(players, matches),
 		Matches:         matchViews,
 		SetsRange:       setsRange,
-		IsAdmin:         isLeagueAdmin(league, currentUser.ID),
+		IsAdmin:         canManage,
 		IsPlayer:        isLeaguePlayer(league, currentUser.ID),
 		Admins:          s.leagueAdmins(league),
 		AdminCandidates: s.leagueAdminCandidates(league),
@@ -184,8 +211,14 @@ func (s *Server) handleLeagueShow(w http.ResponseWriter, r *http.Request) {
 		PlayerSearch: PlayerSearchView{
 			LeagueID:   league.ID,
 			EmptyQuery: true,
-			CanManage:  isLeagueAdmin(league, currentUser.ID),
+			CanManage:  canManage,
 		},
+	}
+	if currentUser.ID != "" && !view.IsAdmin && !view.IsPlayer {
+		view.PendingJoin = s.store.HasPendingJoinRequest(league.ID, currentUser.ID)
+	}
+	if canManage {
+		view.JoinRequests = s.leagueJoinRequestViews(league)
 	}
 	if totalPages > 0 {
 		view.Pages = make([]int, 0, totalPages)
@@ -214,12 +247,12 @@ func (s *Server) handlePlayerSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	currentUser := s.currentUser(r)
-	if !isLeagueAdmin(league, currentUser.ID) {
+	if !canManageLeague(league, currentUser) {
 		http.Error(w, "brak uprawnień", http.StatusForbidden)
 		return
 	}
 	query := strings.TrimSpace(r.URL.Query().Get("q"))
-	view := s.playerSearchView(league, currentUser.ID, query, false)
+	view := s.playerSearchView(league, currentUser, query, false)
 	if err := s.templates.RenderPartial(w, "player_search_results.html", view); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -233,7 +266,7 @@ func (s *Server) handlePlayerAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	currentUser := s.currentUser(r)
-	if !isLeagueAdmin(league, currentUser.ID) {
+	if !canManageLeague(league, currentUser) {
 		http.Error(w, "brak uprawnień", http.StatusForbidden)
 		return
 	}
@@ -254,7 +287,7 @@ func (s *Server) handlePlayerAdd(w http.ResponseWriter, r *http.Request) {
 	if isHTMX(r) {
 		query := strings.TrimSpace(r.FormValue("q"))
 		updatedLeague, _ := s.store.GetLeague(leagueID)
-		view := s.playerSearchView(updatedLeague, currentUser.ID, query, true)
+		view := s.playerSearchView(updatedLeague, currentUser, query, true)
 		if err := s.templates.RenderPartial(w, "player_search_results.html", view); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
@@ -271,7 +304,7 @@ func (s *Server) handleLeagueAdminAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	currentUser := s.currentUser(r)
-	if !isLeagueAdmin(league, currentUser.ID) {
+	if !canManageLeague(league, currentUser) {
 		http.Error(w, "brak uprawnień", http.StatusForbidden)
 		return
 	}
@@ -305,7 +338,7 @@ func (s *Server) handleLeagueAdminRoleUpdate(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	currentUser := s.currentUser(r)
-	if !isLeagueAdmin(league, currentUser.ID) {
+	if !canManageLeague(league, currentUser) {
 		http.Error(w, "brak uprawnień", http.StatusForbidden)
 		return
 	}
@@ -338,7 +371,7 @@ func (s *Server) handleLeagueAdminRemove(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	currentUser := s.currentUser(r)
-	if !isLeagueAdmin(league, currentUser.ID) {
+	if !canManageLeague(league, currentUser) {
 		http.Error(w, "brak uprawnień", http.StatusForbidden)
 		return
 	}
@@ -353,6 +386,78 @@ func (s *Server) handleLeagueAdminRemove(w http.ResponseWriter, r *http.Request)
 	http.Redirect(w, r, "/leagues/"+league.ID, http.StatusSeeOther)
 }
 
+func (s *Server) handleJoinRequestApprove(w http.ResponseWriter, r *http.Request) {
+	leagueID := chi.URLParam(r, "leagueID")
+	requestID := chi.URLParam(r, "requestID")
+	league, ok := s.store.GetLeague(leagueID)
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+	currentUser := s.currentUser(r)
+	if !canManageLeague(league, currentUser) {
+		http.Error(w, "brak uprawnień", http.StatusForbidden)
+		return
+	}
+	req, ok := s.store.GetJoinRequest(requestID)
+	if !ok || req.LeagueID != league.ID {
+		http.NotFound(w, r)
+		return
+	}
+	if req.Status != model.JoinRequestPending {
+		http.Error(w, "prośba została już rozpatrzona", http.StatusBadRequest)
+		return
+	}
+	if !isLeaguePlayer(league, req.UserID) && !isLeagueAdmin(league, req.UserID) {
+		if err := s.store.AddPlayerToLeague(league.ID, req.UserID); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+	now := time.Now()
+	req.Status = model.JoinRequestApproved
+	req.DecidedBy = currentUser.ID
+	req.DecidedAt = &now
+	if err := s.store.UpdateJoinRequest(req); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/leagues/"+league.ID, http.StatusSeeOther)
+}
+
+func (s *Server) handleJoinRequestReject(w http.ResponseWriter, r *http.Request) {
+	leagueID := chi.URLParam(r, "leagueID")
+	requestID := chi.URLParam(r, "requestID")
+	league, ok := s.store.GetLeague(leagueID)
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+	currentUser := s.currentUser(r)
+	if !canManageLeague(league, currentUser) {
+		http.Error(w, "brak uprawnień", http.StatusForbidden)
+		return
+	}
+	req, ok := s.store.GetJoinRequest(requestID)
+	if !ok || req.LeagueID != league.ID {
+		http.NotFound(w, r)
+		return
+	}
+	if req.Status != model.JoinRequestPending {
+		http.Error(w, "prośba została już rozpatrzona", http.StatusBadRequest)
+		return
+	}
+	now := time.Now()
+	req.Status = model.JoinRequestRejected
+	req.DecidedBy = currentUser.ID
+	req.DecidedAt = &now
+	if err := s.store.UpdateJoinRequest(req); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/leagues/"+league.ID, http.StatusSeeOther)
+}
+
 func (s *Server) handleLeagueEnd(w http.ResponseWriter, r *http.Request) {
 	leagueID := chi.URLParam(r, "leagueID")
 	league, ok := s.store.GetLeague(leagueID)
@@ -361,7 +466,7 @@ func (s *Server) handleLeagueEnd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	currentUser := s.currentUser(r)
-	if !isLeagueAdmin(league, currentUser.ID) {
+	if !canManageLeague(league, currentUser) {
 		http.Error(w, "brak uprawnień", http.StatusForbidden)
 		return
 	}
@@ -387,7 +492,7 @@ func (s *Server) handleMatchCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	currentUser := s.currentUser(r)
-	if !isLeagueAdmin(league, currentUser.ID) && !isLeaguePlayer(league, currentUser.ID) {
+	if !canManageLeague(league, currentUser) && !isLeaguePlayer(league, currentUser.ID) {
 		http.Error(w, "brak uprawnień", http.StatusForbidden)
 		return
 	}
@@ -397,9 +502,25 @@ func (s *Server) handleMatchCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	playerA := r.FormValue("player_a_id")
 	playerB := r.FormValue("player_b_id")
+	if playerA == "" {
+		playerA = r.FormValue("player_a")
+	}
+	if playerB == "" {
+		playerB = r.FormValue("player_b")
+	}
 	if playerA == "" || playerB == "" || playerA == playerB {
 		http.Error(w, "wybierz dwóch różnych graczy", http.StatusBadRequest)
 		return
+	}
+	if !canManageLeague(league, currentUser) {
+		if playerA != currentUser.ID {
+			http.Error(w, "gracz A musi być tobą", http.StatusBadRequest)
+			return
+		}
+		if playerB == currentUser.ID {
+			http.Error(w, "wybierz innego gracza jako przeciwnika", http.StatusBadRequest)
+			return
+		}
 	}
 	sets := parseSets(r, league.SetsPerMatch)
 	if len(sets) == 0 {
@@ -539,6 +660,25 @@ func (s *Server) leagueAdmins(league model.League) []LeagueAdminView {
 	return admins
 }
 
+func (s *Server) leagueJoinRequestViews(league model.League) []LeagueJoinRequestView {
+	requests := s.store.ListJoinRequests(league.ID)
+	views := []LeagueJoinRequestView{}
+	for _, req := range requests {
+		if req.Status != model.JoinRequestPending {
+			continue
+		}
+		user, ok := s.store.GetUser(req.UserID)
+		if !ok {
+			continue
+		}
+		views = append(views, LeagueJoinRequestView{
+			Request: req,
+			User:    user,
+		})
+	}
+	return views
+}
+
 func (s *Server) leagueAdminCandidates(league model.League) []model.User {
 	admins := map[string]struct{}{}
 	if league.OwnerID != "" {
@@ -593,9 +733,15 @@ func (s *Server) leagueSearchView(query string, currentUser model.User) LeagueSe
 	results := s.searchLeagues(query)
 	items := make([]LeagueSearchResultView, 0, len(results))
 	for _, league := range results {
+		inLeague := isLeaguePlayer(league, currentUser.ID) || isLeagueAdmin(league, currentUser.ID)
+		pending := false
+		if currentUser.ID != "" && !inLeague {
+			pending = s.store.HasPendingJoinRequest(league.ID, currentUser.ID)
+		}
 		items = append(items, LeagueSearchResultView{
-			League:   league,
-			InLeague: isLeaguePlayer(league, currentUser.ID) || isLeagueAdmin(league, currentUser.ID),
+			League:  league,
+			InLeague: inLeague,
+			Pending: pending,
 		})
 	}
 	return LeagueSearchView{
@@ -618,7 +764,7 @@ func (s *Server) leaguePlayers(league model.League) []model.User {
 	return players
 }
 
-func (s *Server) playerSearchView(league model.League, currentUserID string, query string, includePanel bool) PlayerSearchView {
+func (s *Server) playerSearchView(league model.League, currentUser model.User, query string, includePanel bool) PlayerSearchView {
 	players := s.leaguePlayers(league)
 	inLeague := make(map[string]struct{}, len(league.PlayerIDs))
 	for _, id := range league.PlayerIDs {
@@ -647,7 +793,7 @@ func (s *Server) playerSearchView(league model.League, currentUserID string, que
 		Query:      query,
 		Results:    results,
 		EmptyQuery: query == "",
-		CanManage:  isLeagueAdmin(league, currentUserID),
+		CanManage:  canManageLeague(league, currentUser),
 	}
 	if includePanel {
 		view.IncludePanel = true
@@ -675,6 +821,14 @@ func isLeagueAdmin(league model.League, userID string) bool {
 	return false
 }
 
+func canCreateLeague(user model.User) bool {
+	return user.Role == model.RoleAdmin || user.Role == model.RoleSuperAdmin
+}
+
+func canManageLeague(league model.League, user model.User) bool {
+	return isSuperAdmin(user) || isLeagueAdmin(league, user.ID)
+}
+
 func isLeaguePlayer(league model.League, userID string) bool {
 	if userID == "" {
 		return false
@@ -685,6 +839,35 @@ func isLeaguePlayer(league model.League, userID string) bool {
 		}
 	}
 	return false
+}
+
+func redirectBack(w http.ResponseWriter, r *http.Request, fallback string, notice string) {
+	ref := strings.TrimSpace(r.Referer())
+	if ref != "" {
+		if notice == "" {
+			http.Redirect(w, r, ref, http.StatusSeeOther)
+			return
+		}
+		if u, err := url.Parse(ref); err == nil {
+			q := u.Query()
+			q.Set("notice", notice)
+			u.RawQuery = q.Encode()
+			http.Redirect(w, r, u.String(), http.StatusSeeOther)
+			return
+		}
+	}
+	if notice == "" {
+		http.Redirect(w, r, fallback, http.StatusSeeOther)
+		return
+	}
+	if u, err := url.Parse(fallback); err == nil {
+		q := u.Query()
+		q.Set("notice", notice)
+		u.RawQuery = q.Encode()
+		http.Redirect(w, r, u.String(), http.StatusSeeOther)
+		return
+	}
+	http.Redirect(w, r, fallback, http.StatusSeeOther)
 }
 
 func leagueStatusForDates(start time.Time, end *time.Time, now time.Time) model.LeagueStatus {

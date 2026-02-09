@@ -9,6 +9,7 @@ type SkillLevel string
 type UserRole string
 
 type MatchStatus string
+type JoinRequestStatus string
 
 const (
 	SkillBeginner     SkillLevel = "beginner"
@@ -23,6 +24,10 @@ const (
 	MatchPending   MatchStatus = "pending"
 	MatchConfirmed MatchStatus = "confirmed"
 	MatchRejected  MatchStatus = "rejected"
+
+	JoinRequestPending  JoinRequestStatus = "pending"
+	JoinRequestApproved JoinRequestStatus = "approved"
+	JoinRequestRejected JoinRequestStatus = "rejected"
 )
 
 type User struct {
@@ -62,6 +67,16 @@ type League struct {
 	EndDate      *time.Time
 	Status       LeagueStatus
 	CreatedAt    time.Time
+}
+
+type LeagueJoinRequest struct {
+	ID        string
+	LeagueID  string
+	UserID    string
+	Status    JoinRequestStatus
+	CreatedAt time.Time
+	DecidedBy string
+	DecidedAt *time.Time
 }
 
 type LeagueAdminRole string

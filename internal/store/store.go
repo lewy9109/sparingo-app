@@ -16,6 +16,11 @@ type Store interface {
 	AddAdminToLeague(leagueID, userID string, role model.LeagueAdminRole) error
 	UpdateAdminRole(leagueID, userID string, role model.LeagueAdminRole) error
 	RemoveAdminFromLeague(leagueID, userID string) error
+	CreateJoinRequest(request model.LeagueJoinRequest) (model.LeagueJoinRequest, error)
+	ListJoinRequests(leagueID string) []model.LeagueJoinRequest
+	GetJoinRequest(id string) (model.LeagueJoinRequest, bool)
+	UpdateJoinRequest(request model.LeagueJoinRequest) error
+	HasPendingJoinRequest(leagueID, userID string) bool
 
 	ListMatches(leagueID string) []model.Match
 	GetMatch(id string) (model.Match, bool)

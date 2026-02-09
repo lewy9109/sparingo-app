@@ -17,6 +17,8 @@
             {{ if $.CurrentUser.ID }}
               {{ if .InLeague }}
                 <span class="badge badge-outline">Już jesteś w lidze</span>
+              {{ else if .Pending }}
+                <span class="badge badge-outline">Prośba wysłana</span>
               {{ else }}
                 <form method="post" action="/leagues/{{ .League.ID }}/join">
                   <button class="btn btn-primary btn-sm">Prośba o dołączenie</button>
