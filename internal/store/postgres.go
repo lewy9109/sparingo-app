@@ -92,6 +92,9 @@ func (s *PostgresStore) CreateUser(user model.User) (model.User, error) {
 	if strings.TrimSpace(user.Email) == "" {
 		return model.User{}, errors.New("email is required")
 	}
+	if user.Role == "" {
+		user.Role = model.RoleUser
+	}
 	_, err := s.db.Exec(`INSERT INTO users (id, first_name, last_name, phone, email, password_hash, role, skill, avatar_url) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
 		user.ID, user.FirstName, user.LastName, user.Phone, user.Email, user.PasswordHash, string(user.Role), string(user.Skill), user.AvatarURL,
 	)

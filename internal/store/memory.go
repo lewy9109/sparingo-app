@@ -81,6 +81,9 @@ func (s *MemoryStore) CreateUser(user model.User) (model.User, error) {
 	if user.Email == "" {
 		return model.User{}, errors.New("email is required")
 	}
+	if user.Role == "" {
+		user.Role = model.RoleUser
+	}
 	for _, u := range s.users {
 		if strings.EqualFold(u.Email, user.Email) {
 			return model.User{}, errors.New("email already exists")
