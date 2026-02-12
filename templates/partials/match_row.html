@@ -1,11 +1,11 @@
 {{ define "match_row.html" }}
 <div id="match-{{ .Match.ID }}" class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200/80 bg-slate-50 px-4 py-3">
-  <div>
+  <div class="min-w-0">
     <div class="text-sm text-slate-500">{{ .PlayerA.FullName }} vs {{ .PlayerB.FullName }}</div>
     <div class="text-base font-medium">{{ .ScoreLine }}</div>
     <div class="text-xs text-slate-400">Status: {{ .StatusText }}</div>
   </div>
-  <div class="flex items-center gap-2">
+  <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto">
     {{ if .CanConfirm }}
       <form method="post" action="/matches/{{ .Match.ID }}/confirm" hx-post="/matches/{{ .Match.ID }}/confirm" hx-target="#match-{{ .Match.ID }}" hx-swap="outerHTML">
         <button class="btn btn-xs btn-success">Potwierdź</button>

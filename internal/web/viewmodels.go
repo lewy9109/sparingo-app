@@ -63,6 +63,13 @@ type LeagueSearchView struct {
 	Query      string
 	Results    []LeagueSearchResultView
 	EmptyQuery bool
+	Page       int
+	TotalPages int
+	Pages      []int
+	HasPrev    bool
+	HasNext    bool
+	PrevPage   int
+	NextPage   int
 }
 
 type LeagueSearchResultView struct {

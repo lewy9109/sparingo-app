@@ -1,10 +1,6 @@
 {{ define "league_search_results.html" }}
 <div id="league-search-results" class="mt-6 grid gap-4">
-  {{ if .EmptyQuery }}
-    <div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500">
-      Wpisz frazę, aby wyszukać ligi.
-    </div>
-  {{ else if .Results }}
+  {{ if .Results }}
     {{ range .Results }}
       <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div class="flex flex-wrap items-center justify-between gap-3">
@@ -39,6 +35,40 @@
           <span class="badge badge-outline">Start: {{ .League.StartDate.Format "02 Jan 2006" }}</span>
           {{ if .League.EndDate }}
             <span class="badge badge-outline">Koniec: {{ .League.EndDate.Format "02 Jan 2006" }}</span>
+          {{ end }}
+        </div>
+      </div>
+    {{ end }}
+    {{ if gt .TotalPages 1 }}
+      <div class="mt-1 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <div class="text-xs text-slate-500">Strona {{ .Page }} z {{ .TotalPages }}</div>
+        <div class="flex flex-wrap gap-2">
+          {{ if .HasPrev }}
+            <a
+              class="btn btn-xs btn-outline"
+              href="/leagues/search?q={{ urlquery .Query }}&page={{ .PrevPage }}"
+              hx-get="/leagues/search/results?q={{ urlquery .Query }}&page={{ .PrevPage }}"
+              hx-target="#league-search-results"
+              hx-swap="outerHTML"
+            >Poprzednia</a>
+          {{ end }}
+          {{ range .Pages }}
+            <a
+              class="btn btn-xs {{ if eq . $.Page }}btn-primary{{ else }}btn-outline{{ end }}"
+              href="/leagues/search?q={{ urlquery $.Query }}&page={{ . }}"
+              hx-get="/leagues/search/results?q={{ urlquery $.Query }}&page={{ . }}"
+              hx-target="#league-search-results"
+              hx-swap="outerHTML"
+            >{{ . }}</a>
+          {{ end }}
+          {{ if .HasNext }}
+            <a
+              class="btn btn-xs btn-outline"
+              href="/leagues/search?q={{ urlquery .Query }}&page={{ .NextPage }}"
+              hx-get="/leagues/search/results?q={{ urlquery .Query }}&page={{ .NextPage }}"
+              hx-target="#league-search-results"
+              hx-swap="outerHTML"
+            >Następna</a>
           {{ end }}
         </div>
       </div>

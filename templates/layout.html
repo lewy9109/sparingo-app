@@ -17,6 +17,17 @@
         linear-gradient(120deg, rgba(248, 250, 252, 0.9), rgba(255, 255, 255, 0.92), rgba(254, 243, 199, 0.9)),
         var(--app-bg) center / cover no-repeat fixed;
     }
+
+    main > * {
+      min-width: 0;
+    }
+
+    section,
+    aside,
+    details {
+      min-width: 0;
+      max-width: 100%;
+    }
   </style>
   <script>
     (function () {
@@ -29,17 +40,15 @@
     })();
   </script>
 </head>
-<body class="min-h-screen text-slate-900">
+<body class="min-h-screen overflow-x-hidden text-slate-900">
   <header class="border-b border-slate-200/70 bg-white/80 backdrop-blur">
-    <div class="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center">
+    <div class="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 lg:flex-row lg:items-center">
       <a href="/" class="text-xl font-semibold tracking-tight">Sqoush App</a>
-      <div class="flex-1"></div>
+      <div class="hidden flex-1 lg:block"></div>
       {{ if .IsAuthenticated }}
-        <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
-          <div class="flex flex-wrap items-center gap-2">
-            {{ if or (eq .CurrentUser.Role "admin") (eq .CurrentUser.Role "super_admin") }}
-              <a href="/leagues/new" class="btn btn-sm btn-primary">+ Nowa liga</a>
-            {{ end }}
+        <div class="flex w-full flex-col gap-2 lg:w-auto lg:flex-row lg:items-center lg:justify-end">
+          <div class="flex w-full flex-wrap items-center gap-2 lg:w-auto">
+            <a href="/leagues/new" class="btn btn-sm btn-primary">+ Nowa liga</a>
             <a href="/friendlies/new" class="btn btn-sm btn-secondary" aria-label="Dodaj mecz towarzyski">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-4 w-4" aria-hidden="true">
                 <path fill="currentColor" d="M14.5 3a6.5 6.5 0 1 0 4.6 11.1l1.6 1.6-1.4 1.4a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l1.4-1.4a1 1 0 0 0 0-1.4l-1.6-1.6 1.6-1.6a1 1 0 0 0 0-1.4l-2.4-2.4A6.47 6.47 0 0 0 14.5 3Zm0 2a4.5 4.5 0 1 1 0 9a4.5 4.5 0 0 1 0-9ZM4.3 15.7l3.9-3.9a1 1 0 0 1 1.4 1.4l-3.9 3.9a1 1 0 0 1-1.4-1.4Z"/>
@@ -50,8 +59,8 @@
               <a href="/reports" class="btn btn-sm btn-outline">Zgłoszenia</a>
             {{ end }}
           </div>
-          <div class="flex flex-wrap items-center gap-2">
-            <div class="text-sm text-slate-500">
+          <div class="flex w-full flex-wrap items-center gap-2 lg:w-auto lg:justify-end">
+            <div class="text-sm text-slate-500 break-words">
               Zalogowany: <span class="font-medium text-slate-900">{{ .CurrentUser.FullName }}</span>
               {{ if eq .CurrentUser.Role "super_admin" }}
                 <span class="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">Super Admin</span>
@@ -60,9 +69,9 @@
               {{ end }}
             </div>
             {{ if and .IsDev (eq .CurrentUser.Role "super_admin") }}
-              <form method="post" action="/dev/switch-user" class="flex items-center gap-2">
+              <form method="post" action="/dev/switch-user" class="flex flex-wrap items-center gap-2">
                 <label class="text-xs uppercase tracking-wide text-slate-400">Dev: user</label>
-                <select name="user_id" class="select select-bordered select-xs">
+                <select name="user_id" class="select select-bordered select-xs max-w-[11rem]">
                   {{ range .Users }}
                     <option value="{{ .ID }}" {{ if eq .ID $.CurrentUser.ID }}selected{{ end }}>{{ .FullName }}</option>
                   {{ end }}
@@ -83,7 +92,7 @@
       {{ end }}
     </div>
   </header>
-  <main class="mx-auto max-w-6xl px-4 py-8">
+  <main class="mx-auto w-full max-w-6xl px-4 py-8">
     {{ if .FlashSuccess }}
       <div id="flash-success" class="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
         {{ .FlashSuccess }}

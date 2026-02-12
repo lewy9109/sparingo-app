@@ -1,6 +1,6 @@
 {{ define "friendly_match_row_static.html" }}
 <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200/80 bg-slate-50 px-4 py-3">
-  <div>
+  <div class="min-w-0">
     <div class="flex flex-wrap items-center gap-2 text-xs uppercase tracking-wide text-slate-400">
       <span class="badge badge-outline">Mecz towarzyski</span>
       <span class="badge badge-outline">{{ .StatusText }}</span>
@@ -9,7 +9,7 @@
     <div class="text-base font-medium">{{ .ScoreLine }}</div>
     <div class="text-xs text-slate-400">Rozegrano: {{ .PlayedAtLabel }}</div>
   </div>
-  <div class="flex items-center gap-2">
+  <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto">
     {{ if .CanConfirm }}
       <form method="post" action="/friendlies/{{ .Match.ID }}/confirm">
         <button class="btn btn-xs btn-success">Potwierdź</button>

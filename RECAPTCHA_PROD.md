@@ -6,10 +6,12 @@
 
 2. **Ustaw zmienne środowiskowe na serwerze**
    ```bash
+   RECAPTCHA_ENABLED=true
    RECAPTCHA_SITE_KEY=twoj_site_key
    RECAPTCHA_SECRET_KEY=twoj_secret_key
    RECAPTCHA_MIN_SCORE=0.5
    ```
+   - Domyślnie reCAPTCHA jest wyłączona (`RECAPTCHA_ENABLED=false` lub brak tej zmiennej).
    - `RECAPTCHA_MIN_SCORE` możesz dostroić (np. 0.3–0.7) po obserwacji ruchu.
 
 3. **Włącz HTTPS**

@@ -17,8 +17,8 @@ import (
 
 func (s *Server) handleLeagueNew(w http.ResponseWriter, r *http.Request) {
 	currentUser := s.currentUser(r)
-	if !canCreateLeague(currentUser) {
-		http.Error(w, "brak uprawnień", http.StatusForbidden)
+	if currentUser.ID == "" {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 	view := BaseView{
@@ -36,7 +36,8 @@ func (s *Server) handleLeagueNew(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleLeagueSearch(w http.ResponseWriter, r *http.Request) {
 	currentUser := s.currentUser(r)
 	query := strings.TrimSpace(r.URL.Query().Get("q"))
-	view := s.leagueSearchView(query, currentUser)
+	page := leagueSearchPage(r.URL.Query().Get("page"))
+	view := s.leagueSearchView(query, currentUser, page)
 	view.Title = "Wyszukaj ligi"
 	view.Users = s.store.ListUsers()
 	view.IsAuthenticated = currentUser.ID != ""
@@ -49,8 +50,9 @@ func (s *Server) handleLeagueSearch(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleLeagueSearchResults(w http.ResponseWriter, r *http.Request) {
 	query := strings.TrimSpace(r.URL.Query().Get("q"))
+	page := leagueSearchPage(r.URL.Query().Get("page"))
 	currentUser := s.currentUser(r)
-	view := s.leagueSearchView(query, currentUser)
+	view := s.leagueSearchView(query, currentUser, page)
 	if err := s.templates.RenderPartial(w, "league_search_results.html", view); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -118,8 +120,8 @@ func (s *Server) handleLeagueCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	currentUser := s.currentUser(r)
-	if !canCreateLeague(currentUser) {
-		http.Error(w, "brak uprawnień", http.StatusForbidden)
+	if currentUser.ID == "" {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 	status := leagueStatusForDates(startDate, endDate, time.Now())
@@ -713,10 +715,10 @@ func (s *Server) leaguesForUser(userID string) []model.League {
 }
 
 func (s *Server) searchLeagues(query string) []model.League {
-	if query == "" {
-		return nil
-	}
 	leagues := s.store.ListLeagues()
+	if query == "" {
+		return leagues
+	}
 	results := []model.League{}
 	lower := strings.ToLower(query)
 	for _, league := range leagues {
@@ -729,19 +731,43 @@ func (s *Server) searchLeagues(query string) []model.League {
 	return results
 }
 
-func (s *Server) leagueSearchView(query string, currentUser model.User) LeagueSearchView {
+func (s *Server) leagueSearchView(query string, currentUser model.User, page int) LeagueSearchView {
+	const pageSize = 20
 	results := s.searchLeagues(query)
-	items := make([]LeagueSearchResultView, 0, len(results))
-	for _, league := range results {
+	total := len(results)
+	totalPages := int(math.Ceil(float64(total) / float64(pageSize)))
+	if totalPages == 0 {
+		totalPages = 1
+	}
+	if page > totalPages {
+		page = totalPages
+	}
+	start := (page - 1) * pageSize
+	end := start + pageSize
+	if start > total {
+		start = total
+	}
+	if end > total {
+		end = total
+	}
+	paged := results
+	if total > 0 {
+		paged = results[start:end]
+	} else {
+		paged = []model.League{}
+	}
+
+	items := make([]LeagueSearchResultView, 0, len(paged))
+	for _, league := range paged {
 		inLeague := isLeaguePlayer(league, currentUser.ID) || isLeagueAdmin(league, currentUser.ID)
 		pending := false
 		if currentUser.ID != "" && !inLeague {
 			pending = s.store.HasPendingJoinRequest(league.ID, currentUser.ID)
 		}
 		items = append(items, LeagueSearchResultView{
-			League:  league,
+			League:   league,
 			InLeague: inLeague,
-			Pending: pending,
+			Pending:  pending,
 		})
 	}
 	return LeagueSearchView{
@@ -751,6 +777,13 @@ func (s *Server) leagueSearchView(query string, currentUser model.User) LeagueSe
 		Query:      query,
 		Results:    items,
 		EmptyQuery: query == "",
+		Page:       page,
+		TotalPages: totalPages,
+		Pages:      leagueSearchPages(totalPages),
+		HasPrev:    page > 1,
+		HasNext:    page < totalPages,
+		PrevPage:   page - 1,
+		NextPage:   page + 1,
 	}
 }
 
@@ -821,8 +854,20 @@ func isLeagueAdmin(league model.League, userID string) bool {
 	return false
 }
 
-func canCreateLeague(user model.User) bool {
-	return user.Role == model.RoleAdmin || user.Role == model.RoleSuperAdmin
+func leagueSearchPage(raw string) int {
+	page, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil || page < 1 {
+		return 1
+	}
+	return page
+}
+
+func leagueSearchPages(totalPages int) []int {
+	pages := make([]int, 0, totalPages)
+	for i := 1; i <= totalPages; i++ {
+		pages = append(pages, i)
+	}
+	return pages
 }
 
 func canManageLeague(league model.League, user model.User) bool {

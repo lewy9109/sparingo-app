@@ -118,40 +118,31 @@ func (s *Server) handleRegisterPost(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	if !cfg.Enabled {
-		view := AuthView{
-			BaseView:         BaseView{Title: "Rejestracja", IsDev: isDevMode()},
-			Error:            "reCAPTCHA nie jest skonfigurowana",
-			RecaptchaSiteKey: cfg.SiteKey,
+	if cfg.Enabled {
+		token := strings.TrimSpace(r.FormValue("recaptcha_token"))
+		if token == "" {
+			view := AuthView{
+				BaseView:         BaseView{Title: "Rejestracja", IsDev: isDevMode()},
+				Error:            "Brak tokenu reCAPTCHA",
+				RecaptchaSiteKey: cfg.SiteKey,
+			}
+			if err := s.templates.Render(w, "register.html", view); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+			return
 		}
-		if err := s.templates.Render(w, "register.html", view); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+		ok, err := verifyRecaptchaToken(token, "register", cfg)
+		if err != nil || !ok {
+			view := AuthView{
+				BaseView:         BaseView{Title: "Rejestracja", IsDev: isDevMode()},
+				Error:            "Nieudana weryfikacja reCAPTCHA",
+				RecaptchaSiteKey: cfg.SiteKey,
+			}
+			if err := s.templates.Render(w, "register.html", view); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+			return
 		}
-		return
-	}
-	token := strings.TrimSpace(r.FormValue("recaptcha_token"))
-	if token == "" {
-		view := AuthView{
-			BaseView:         BaseView{Title: "Rejestracja", IsDev: isDevMode()},
-			Error:            "Brak tokenu reCAPTCHA",
-			RecaptchaSiteKey: cfg.SiteKey,
-		}
-		if err := s.templates.Render(w, "register.html", view); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-		return
-	}
-	ok, err := verifyRecaptchaToken(token, "register", cfg)
-	if err != nil || !ok {
-		view := AuthView{
-			BaseView:         BaseView{Title: "Rejestracja", IsDev: isDevMode()},
-			Error:            "Nieudana weryfikacja reCAPTCHA",
-			RecaptchaSiteKey: cfg.SiteKey,
-		}
-		if err := s.templates.Render(w, "register.html", view); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-		return
 	}
 	user := model.User{
 		FirstName:    firstName,
@@ -200,6 +191,12 @@ type recaptchaConfig struct {
 }
 
 func recaptchaConfigFromEnv() recaptchaConfig {
+	enabled := false
+	if raw := strings.TrimSpace(os.Getenv("RECAPTCHA_ENABLED")); raw != "" {
+		if parsed, err := strconv.ParseBool(raw); err == nil {
+			enabled = parsed
+		}
+	}
 	siteKey := strings.TrimSpace(os.Getenv("RECAPTCHA_SITE_KEY"))
 	secret := strings.TrimSpace(os.Getenv("RECAPTCHA_SECRET_KEY"))
 	minScore := 0.5
@@ -208,11 +205,16 @@ func recaptchaConfigFromEnv() recaptchaConfig {
 			minScore = parsed
 		}
 	}
+	if !enabled {
+		siteKey = ""
+		secret = ""
+	}
+
 	return recaptchaConfig{
 		SiteKey:  siteKey,
 		Secret:   secret,
 		MinScore: minScore,
-		Enabled:  siteKey != "" && secret != "",
+		Enabled:  enabled && siteKey != "" && secret != "",
 	}
 }
 

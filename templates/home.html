@@ -1,7 +1,7 @@
 {{ define "content" }}
-<div class="grid gap-6 lg:grid-cols-[220px,1fr]">
-  <aside class="lg:sticky lg:top-6">
-    <details class="group rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">
+<div class="grid gap-6 lg:grid-cols-[220px,minmax(0,1fr)]">
+  <aside class="min-w-0 lg:sticky lg:top-6">
+    <details class="group w-full min-w-0 rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">
       <summary class="flex cursor-pointer items-center justify-between gap-3 text-sm font-semibold text-slate-700">
         <span class="flex items-center gap-2">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-4 w-4" aria-hidden="true">
@@ -16,16 +16,14 @@
         {{ if .Leagues }}
           <a href="/leagues/{{ (index .Leagues 0).ID }}" class="btn btn-outline btn-sm">Moja liga</a>
         {{ end }}
-        {{ if or (eq .CurrentUser.Role "admin") (eq .CurrentUser.Role "super_admin") }}
-          <a href="/leagues/new" class="btn btn-outline btn-sm">Stwórz ligę</a>
-        {{ end }}
+        <a href="/leagues/new" class="btn btn-outline btn-sm">Stwórz ligę</a>
         <a href="/leagues/search" class="btn btn-outline btn-sm">Wyszukaj ligę</a>
       </div>
     </details>
   </aside>
 
-  <div class="grid gap-6">
-    <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+  <div class="grid min-w-0 gap-6">
+    <section class="w-full min-w-0 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <h1 class="text-2xl font-semibold">Twoje ligi</h1>
       <p class="mt-1 text-sm text-slate-500">Szybki podgląd rankingów i ostatnich wydarzeń.</p>
       <div class="mt-6 grid gap-4">
@@ -54,7 +52,7 @@
                 type="text"
                 name="q"
                 value="{{ .LeagueSearch.Query }}"
-                class="input input-bordered flex-1 min-w-[220px]"
+                class="input input-bordered w-full sm:flex-1"
                 placeholder="Nazwa, opis lub lokalizacja"
                 hx-get="/leagues/search/results"
                 hx-trigger="keyup changed delay:300ms"
@@ -70,7 +68,7 @@
     </section>
 
     {{ if .JoinRequests }}
-      <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section class="w-full min-w-0 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <h2 class="text-xl font-semibold">Prośby o dołączenie</h2>
           <span class="text-xs text-slate-400">Tylko dla adminów i super admina</span>
@@ -97,7 +95,7 @@
       </section>
     {{ end }}
 
-    <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section class="w-full min-w-0 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <h2 class="text-xl font-semibold">Dostępne ligi</h2>
         <span class="text-xs text-slate-400">Najnowsze na górze</span>
@@ -160,7 +158,7 @@
       {{ end }}
     </section>
 
-    <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section class="w-full min-w-0 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div class="flex flex-wrap items-center justify-between gap-3">
       <h2 class="text-xl font-semibold">Twoje mecze</h2>
         <span class="text-xs text-slate-400">Maks. 6 wyników na zakładkę</span>
