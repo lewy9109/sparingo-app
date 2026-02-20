@@ -178,3 +178,44 @@ Po wykonaniu tych kroków aplikacja:
 * uruchomi się automatycznie po restarcie VPS
 * będzie restartowana przy błędzie
 * będzie działać na porcie 20266
+
+
+
+---
+
+
+
+🔧 Krok 4 — Aktywacja
+sudo ln -s /etc/nginx/sites-available/twojadomena /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+🔐 Krok 5 — Certyfikat Let's Encrypt
+sudo certbot --nginx -d twojadomena.pl
+
+Certbot sam wstawi ścieżki do certyfikatów.
+
+🔥 Jeśli KONIECZNIE chcesz publiczny port 20266
+
+To musisz zrobić tak:
+
+Nginx → listen 20266 ssl;
+
+Go → zmienić na inny port np 127.0.0.1:3000
+
+Konfiguracja wtedy:
+
+server {
+    listen 20266 ssl;
+    server_name twojadomena.pl;
+
+    ssl_certificate /etc/letsencrypt/live/twojadomena.pl/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/twojadomena.pl/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+    }
+}
+
+Ale powiem wprost:
+Używanie 20266 jako publicznego portu HTTPS jest dziwne i niepotrzebne.
+Standard to 443.§
